@@ -1,0 +1,6 @@
+; $Id$
+name = Article Discovery Advanced Search
+description = "This module implements an advanced search interface for the main Article Discovery module."
+dependencies[] = article_discovery
+core = 6.x
+php = 5

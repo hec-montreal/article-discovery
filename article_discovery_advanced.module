@@ -1,0 +1,847 @@
+<?php
+
+/**
+ * @file
+ * Article Discovery Advanced module
+ */
+
+
+/**
+ * Implements hook_menu().
+ */
+function article_discovery_advanced_menu() {
+  $items = array();
+  $items['articles/advanced'] = array(
+    'title' => 'Article Discovery Advanced Search',
+    'description' => 'Article Discovery Advanced Search',
+    'page callback' => 'article_discovery_advanced_display',
+    'access arguments' => array('advanced search article discovery'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_registry_alter().
+ */
+function article_discovery_advanced_theme_registry_alter(&$vars) {
+  $vars['article_discovery_status_bar']['template'] = 'article_discovery_advanced_status_bar';
+}
+
+/**
+ * Implements hook_perm().
+ */
+function article_discovery_advanced_perm() {
+  return array(
+    'advanced search article discovery',     // Who can conduct searches?
+  );
+}
+
+
+function article_discovery_advanced_display() {
+  _article_discovery_setup_common();
+  drupal_add_js(drupal_get_path('module', 'article_discovery_advanced') . '/article_discovery_advanced.js');
+  $variables = array_merge($_GET, $_POST);
+  if (isset($variables['type'])) {
+    //We don't really want these.
+    foreach (array('op', 'form_build_id', 'form_token', 'form_id', 'q') as $field) {
+      if (isset($variables[$field])) {
+        unset($variables[$field]);
+      }
+    }
+
+    $path = preg_replace('/\?.*/', '', request_uri());
+    $count = max(count($variables['type']), count($variables['lookfor']), count($variables['bool'])+1);
+    $clauses = array();
+    for ( $i=0; $i < $count ; ++$i) {
+      if (isset($variables['type'][$i])    && drupal_strlen($variables['type'][$i]) &&
+          isset($variables['lookfor'][$i]) && drupal_strlen($variables['lookfor'][$i])) {
+        if ($variables['type'][$i] == 'All') {
+          if (count($clauses) > 0) {
+            if (isset($variables['bool'][$i-1]) && ($variables['bool'][$i-1] == 'AND' || $variables['bool'][$i-1] == 'OR'))  {
+              $clauses[] =  $variables['bool'][$i-1];
+            }
+            else {
+              continue;
+            }
+          }
+          $clauses[] = sprintf('(%s)', $variables['lookfor'][$i]);
+        }
+        else {
+          if (count($clauses) > 0) {
+            if (isset($variables['bool'][$i-1]) && ($variables['bool'][$i-1] == 'AND' || $variables['bool'][$i-1] == 'OR'))  {
+              $clauses[] =  $variables['bool'][$i-1];
+            }
+            else {
+              continue;
+            }
+          }
+          $clauses[] = sprintf('%s:(%s)', $variables['type'][$i], $variables['lookfor'][$i]);
+        }
+      }
+      else {
+        //Either no type or no lookfor for this one.  So skip it.
+      }
+    }
+    if (count($clauses) == 1 && drupal_substr($clauses[0], 0, 1) == '(' && drupal_substr($clauses[0], -1) == ')') {
+      $variables['kw'] = drupal_substr($clauses[0], 1, -1);
+    }
+    else {
+      $variables['kw'] = implode(' ', $clauses);
+    }
+    unset($variables['type']);
+    unset($variables['lookfor']);
+    unset($variables['bool']);
+    if (!isset($variables['facet'])) {
+      $variables['facet'] = array();
+    }
+    switch ($variables['published']) {
+      case 'after':
+        if (drupal_strlen($variables['published_start']) > 0)
+          $variables['facet'][] = sprintf('addRangeFilter(PublicationDate,%s:*)', $variables['published_start']);
+        break;
+      case 'before':
+        if (drupal_strlen($variables['published_start']) > 0)
+          $variables['facet'][] = sprintf('addRangeFilter(PublicationDate,*:%s)', $variables['published_start']);
+        break;
+      case 'between':
+        if (drupal_strlen($variables['published_start']) > 0  && drupal_strlen($variables['published_end']) > 0)
+          $variables['facet'][] = sprintf('addRangeFilter(PublicationDate,%s:%s)', $variables['published_start'], $variables['published_end']);
+        break;
+      case 'in':
+        if (drupal_strlen($variables['published_start']) > 0)
+          $variables['facet'][] = sprintf('addRangeFilter(PublicationDate,%s:%s)', $variables['published_start'], $variables['published_start']);
+        break;
+    }
+    unset($variables['published']);
+    unset($variables['published_start']);
+    unset($variables['published_end']);
+    foreach (array('Language', 'ContentType') as $limit) {
+      if (isset($variables[$limit])) {
+        if (is_array($variables[$limit]) &&
+            count($variables[$limit]) &&
+            in_array('All', $variables[$limit]) === FALSE
+        ) {
+          $variables['facet'][] = sprintf('addFacetValueGroupFilter(%s,or,%s)', $limit, implode(',', $variables[$limit]));
+        }
+        unset($variables[$limit]);
+      }
+    }
+    unset($variables['submit']);
+    $qs = html_entity_decode(http_build_query($variables));
+
+    return drupal_goto('articles/search', $qs);
+  }
+  else {
+    require_once('summon.php');
+    $s = new SummonClient(
+      variable_get('article_discovery_username', ''),
+      variable_get('article_discovery_password', '')
+    );
+    if (isset($_SESSION['summon']) && isset($_SESSION['summon']['session-id'])) {
+      $s->session($_SESSION['summon']['session-id']);
+    }
+    $facets = array(
+      'ContentType,and,1,100',
+      'Language,and,1,100',
+    );
+    $res = article_discovery_submit_query($s, '', $facets, array(), 1, 0, NULL, array('s.ho' => 'false'));
+    $data = array();
+    foreach ($res->facetFields as $facet) {
+      if (count($facet->counts) > 0) {
+        if (!isset($data[$facet->displayName]))
+          $data[$facet->displayName] = array();
+        foreach ($facet->counts as $term) {
+          $data[$facet->displayName][] = $term->value;
+        }
+        sort($data[$facet->displayName]);
+      }
+    }
+    if (isset($variables['kw'])) {
+      $data['query'] = article_discovery_advanced_parse_kw_string($variables['kw']);
+    }
+    else {
+      $data['query'] = array('keywords' => array('kw' => ''));
+    }
+    foreach (array('facet', 'scholarly', 'newspapers', 'fulltext', 'local') as $var) {
+      if (isset($variables[$var])) {
+        $data['query'][$var] = $variables[$var];
+      }
+    }
+    return theme(
+      'article_discovery_results',
+      array(
+        'state' => 'advanced',
+        'status' => drupal_get_form('article_discovery_advanced_search_box', $data, array_merge($_GET, $_POST)),
+      )
+    );
+  }
+}
+
+function article_discovery_advanced_search_box(&$form, $data, $defaults) {
+  $types = array(
+    'All' => 'Tous les champs',
+    'Title' => 'Titre',
+    'Author' => 'Auteur(s)',
+    'PublicationTitle' => 'Titre de la publication',
+    'SubjectTerms' => 'Sujet',
+    'Series' => 'Series',
+    'PublicationYear' => 'Année de publication',
+    'ISSN' => 'ISSN',
+    'ISBN' => 'ISBN',
+  );
+  $bools = array('AND' => 'ET', 'OR' => 'OU');
+  $languages = array( 'All' => 'Tous');
+  foreach ($data['Language'] as $language) {
+    $languages[$language] = $language;
+  }
+  $formats = array('All' => 'Tous');
+  foreach ($data['ContentType'] as $format) {
+    $formats[$format] = $format;
+  }
+  $form = array(
+    '#method' => preg_replace('/\?.*/', '', request_uri()),
+    'scholarly' => array(
+      '#return_value' => 1,
+      '#default_value' => (isset($defaults['scholarly'])?'1':''),
+      '#title' => t('Limit to articles from scholarly journals'),
+      '#type' => 'checkbox',
+    ),
+    'newspapers' => array(
+      '#return_value' => 1,
+      '#default_value' => (isset($defaults['newspapers'])?'1':''),
+      '#title' => t('Exclude newspaper articles'),
+      '#type' => 'checkbox',
+    ),
+    'fulltext' => array(
+      '#return_value' => 1,
+      '#default_value' => (isset($defaults['fulltext'])?'1':''),
+      '#title' => t('Limit to articles with full text online'),
+      '#type' => 'checkbox',
+    ),
+    'local' => array(
+      '#return_value' => 1,
+      '#default_value' => (isset($defaults['local'])?'1':''),
+      '#title' => t("Add results beyond this library's holdings"),
+      '#type' => 'checkbox',
+    ),
+    'textfield_table' => array(
+      '#prefix' => '<table>',
+      '#suffix' => '</table>',
+      'kw' => array(
+        '#prefix' => '<tr>',
+        '#suffix' => '</tr>',
+        'bool[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'markup',
+          '#value' => 'Recherche',
+        ),
+        'type[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $types,
+          '#default_value' => 'All',
+        ),
+        'lookfor[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'textfield',
+          '#size' => '50',
+          '#default_value' => isset($data['query']['keywords']['kw']) ? (!empty($data['query']['keywords']['kw']) ? implode(' ', $data['query']['keywords']['kw']) : '') : '',
+        ),
+      ),
+      'Author' => array(
+        '#prefix' => '<tr>',
+        '#suffix' => '</tr>',
+        'bool[]' => array(
+          '#type' => 'select',
+          '#options' => $bools,
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#default_value' => isset($data['query']['conjunctions']['Author']) ? $data['query']['conjunctions']['Author'] : 'AND',
+        ),
+        'type[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $types,
+          '#default_value' => 'Author',
+        ),
+        'lookfor[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'textfield',
+          '#size' => '50',
+          '#default_value' => isset($data['query']['keywords']['Author']) ? implode(' ', $data['query']['keywords']['Author']) : '',
+        ),
+      ),
+      'Title' => array(
+        '#prefix' => '<tr>',
+        '#suffix' => '</tr>',
+        'bool[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $bools,
+          '#default_value' => isset($data['query']['conjunctions']['Title']) ? $data['query']['conjunctions']['Title'] : 'AND',
+        ),
+        'type[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#default_value' => 'Title',
+          '#options' => $types,
+        ),
+        'lookfor[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'textfield',
+          '#size' => '50',
+          '#default_value' => isset($data['query']['keywords']['Title']) ? implode(' ', $data['query']['keywords']['Title']) : '',
+        ),
+      ),
+      'SubjectTerms' => array(
+        '#prefix' => '<tr>',
+        '#suffix' => '</tr>',
+        'bool[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $bools,
+          '#default_value' => isset($data['query']['conjunctions']['SubjectTerms']) ? $data['query']['conjunctions']['SubjectTerms'] : 'AND',
+        ),
+        'type[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $types,
+          '#default_value' => 'SubjectTerms',
+        ),
+        'lookfor[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'textfield',
+          '#size' => '50',
+          '#default_value' => isset($data['query']['keywords']['SubjectTerms']) ? implode(' ', $data['query']['keywords']['SubjectTerms']) : '',
+        ),
+      ),
+      'PublicationTitle' => array(
+        '#prefix' => '<tr>',
+        '#suffix' => '</tr>',
+        'bool[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $bools,
+          '#default_value' => isset($data['query']['conjunctions']['PublicationTitle']) ? $data['query']['conjunctions']['PublicationTitle'] : 'AND',
+        ),
+        'type[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $types,
+          '#default_value' => 'PublicationTitle',
+        ),
+        'lookfor[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'textfield',
+          '#size' => '50',
+          '#default_value' => isset($data['query']['keywords']['PublicationTitle']) ? implode(' ', $data['query']['keywords']['PublicationTitle']) : '',
+        ),
+      ),
+      'Series' => array(
+        '#prefix' => '<tr>',
+        '#suffix' => '</tr>',
+        'bool[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $bools,
+          '#default_value' => isset($data['query']['conjunctions']['Series']) ? $data['query']['conjunctions']['Series'] : 'AND',
+        ),
+        'type[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $types,
+          '#default_value' => 'Series',
+        ),
+        'lookfor[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'textfield',
+          '#size' => '50',
+          '#default_value' => isset($data['query']['keywords']['Series']) ? implode(' ', $data['query']['keywords']['Series']) : '',
+        ),
+      ),
+      'PublicationYear' => array(
+        '#prefix' => '<tr>',
+        '#suffix' => '</tr>',
+        'bool[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $bools,
+          '#default_value' => isset($data['query']['conjunctions']['PublicationYear']) ? $data['query']['conjunctions']['PublicationYear'] : 'AND',
+        ),
+        'type[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $types,
+          '#default_value' => 'PublicationYear',
+        ),
+        'lookfor[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'textfield',
+          '#size' => '50',
+          '#default_value' => isset($data['query']['keywords']['PublicationYear']) ? implode(' ', $data['query']['keywords']['PublicationYear']) : '',
+        ),
+      ),
+      'ISSN' => array(
+        '#prefix' => '<tr>',
+        '#suffix' => '</tr>',
+        'bool[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $bools,
+          '#default_value' => isset($data['query']['conjunctions']['ISSN']) ? $data['query']['conjunctions']['ISSN'] : 'AND',
+        ),
+        'type[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $types,
+          '#default_value' => 'ISSN',
+        ),
+        'lookfor[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'textfield',
+          '#size' => '50',
+          '#default_value' => isset($data['query']['keywords']['ISSN']) ? implode(' ', $data['query']['keywords']['ISSN']) : '',
+        ),
+      ),
+      'ISBN' => array(
+        '#prefix' => '<tr>',
+        '#suffix' => '</tr>',
+        'bool[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $bools,
+          '#default_value' => isset($data['query']['conjunctions']['ISBN']) ? $data['query']['conjunctions']['ISBN'] : 'AND',
+        ),
+        'type[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'select',
+          '#options' => $types,
+          '#default_value' => 'ISBN',
+        ),
+        'lookfor[]' => array(
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+          '#type' => 'textfield',
+          '#size' => '50',
+          '#default_value' => isset($data['query']['keywords']['ISBN']) ? implode(' ', $data['query']['keywords']['ISBN']) : '',
+        ),
+      ),
+    ),
+    'select_table' => array(
+      '#prefix' => '<table><tr><td>Année de publication:</td><td>Langue:</td><td>Type:</td></tr>',
+      'row_2' => array(
+        'published' => array(
+          '#type' => 'select',
+          '#options' => array('before' => 'Avant', 'after' => 'Après', 'between' => 'Entre', 'in' => 'Dans'),
+          '#prefix' => '<td>',
+        ),
+        'published_start' => array(
+          '#type' => 'textfield',
+          '#size' => 4,
+          '#suffix' => '<span style="visibility: hidden;" class="article-published-between"> and </span>',
+        ),
+        'published_end' => array(
+          '#type' => 'textfield',
+          '#size' => 4,
+          '#suffix' => '</td>',
+          '#attributes' => array('class' => 'article-published-between', 'style' => 'visibility: hidden;'),
+        ),
+        'Language' => array(
+          '#type' => 'select',
+          '#size' => 10,
+          '#multiple' => TRUE,
+          '#options' => $languages,
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+        ),
+        'ContentType' => array(
+          '#type' => 'select',
+          '#size' => 10,
+          '#multiple' => TRUE,
+          '#options' => $formats,
+          '#prefix' => '<td>',
+          '#suffix' => '</td>',
+        ),
+      ),
+      '#suffix' => '</table>',
+    ),
+    'submit' => array(
+      '#type' => 'submit',
+      '#value' => 'Chercher',
+    ),
+  );
+
+  if (isset($data['query']) && isset($data['query']['keywords'])) {
+    foreach ($data['query']['keywords'] as $k => $v) {
+      if (count($v) && is_array($v[0])) {
+        $form['textfield_table'][$k]['lookfor[]']['#default_value'] = implode('', $v[0]);
+      }
+    }
+  }
+  if (isset($data['query']) && isset($data['query']['conjunctions'])) {
+    foreach ($data['query']['conjunctions'] as $k => $v) {
+      if (drupal_strlen($v)) {
+        $form['textfield_table'][$k]['bool[]']['#default_value'] = $v;
+      }
+    }
+  }
+  $deleted = 0;
+  foreach (array('ISSN', 'ISBN' , 'PublicationYear', 'Series', 'PublicationTitle', 'SubjectTerms', 'Author', 'Title') as $field) {
+    if ($deleted < 4 && drupal_strlen($form['textfield_table'][$field]['lookfor[]']['#default_value']) == 0) {
+      unset($form['textfield_table'][$field]);
+      ++$deleted;
+    }
+  }
+  if (isset($data['query']) && isset($data['query']['facet'])) {
+    foreach ($data['query']['facet'] as $facet) {
+      if (drupal_substr($facet, 0, 37) == 'addFacetValueGroupFilter(Language,or,') {
+        $form['select_table']['row_2']['Language']['#default_value'] = explode(',', drupal_substr(drupal_substr($facet, 37), 0, -1));
+      }
+      elseif (drupal_substr($facet, 0, 40) == 'addFacetValueGroupFilter(ContentType,or,') {
+        $form['select_table']['row_2']['ContentType']['#default_value'] = explode(',', drupal_substr(drupal_substr($facet, 40), 0, -1));
+      }
+      elseif (drupal_substr($facet, 0, 31) == 'addRangeFilter(PublicationDate,') {
+        list($start, $end) = explode(':', drupal_substr(drupal_substr($facet, 31), 0, -1), 2);
+        if ($start == '*') {
+          $form['select_table']['row_2']['published']['#default_value']       = 'before';
+          $form['select_table']['row_2']['published_start']['#default_value'] = $end;
+        }
+        elseif ($end == '*') {
+          $form['select_table']['row_2']['published']['#default_value']       = 'after';
+          $form['select_table']['row_2']['published_start']['#default_value'] = $start;
+        }
+        elseif ($start == $end) {
+          $form['select_table']['row_2']['published']['#default_value']       = 'in';
+          $form['select_table']['row_2']['published_start']['#default_value'] = $start;
+        }
+        else {
+          $form['select_table']['row_2']['published']['#default_value']       = 'between';
+          $form['select_table']['row_2']['published_start']['#default_value'] = $start;
+          $form['select_table']['row_2']['published_end']['#default_value']   = $end;
+        }
+      }
+    }
+  }
+  return $form;
+}
+
+function article_discovery_advanced_tokenize_kw_string($str) {
+  $tokens = array();
+  $token = '';
+  $state = 0;
+  for ($i=0; $i < drupal_strlen($str); ++ $i) {
+    switch ($state) {
+      case 0:
+        switch ($str{$i}) {
+          case ')':
+            if (drupal_strlen($token)) {
+              $tokens[] = array('type' => 'STRING', 'value' => $token);
+              $token = '';
+            }
+            $tokens[] = array('type' => 'END_PAREN', 'value' => ')');
+            break;
+          case '(':
+            if (drupal_strlen($token)) {
+              $tokens[] = array('type' => 'STRING', 'value' => $token);
+              $token = '';
+            }
+            $tokens[] = array('type' => 'BEGIN_PAREN', 'value' => '(');
+            break;
+          case '"':
+            $state = 1;
+            if (drupal_strlen($token)) {
+              $tokens[] = array('type' => 'STRING', 'value' => $token);
+              $token = '';
+            }
+            $tokens[] = array('type' => 'BEGIN_QUOTE', 'value' => '"');
+            break;
+          case ' ':
+            if (drupal_strlen($token)) {
+              $tokens[] = array('type' => 'STRING', 'value' => $token);
+              $token = '';
+            }
+            $tokens[] = array('type' => 'WS', 'value' => ' ');
+            break;
+          case ':':
+            if (drupal_strlen($token)) {
+              $tokens[] = array('type' => 'STRING', 'value' => $token);
+              $token = '';
+            }
+            $tokens[] = array('type' => 'COLON', 'value' => ':') ;
+            break;
+          case '\\':
+            if ($i+1 < drupal_strlen($str)) {
+              ++$i;
+            }
+            //Intentionally no break here so that the escape does its thing.
+          default:
+            $token .= $str{$i};
+            break;
+        }
+        break;
+      case 1:
+        switch ($str{$i}) {
+          case '"':
+            $state = 0;
+            if (drupal_strlen($token)) {
+              $tokens[] = array('type' => 'STRING', 'value' => $token);
+              $token = '';
+            }
+            $tokens[] = array('type' => 'END_QUOTE', 'value' => '"');
+            break;
+          case '\\':
+            if ($i+1 < drupal_strlen($str)) {
+              ++$i;
+            }
+            //Intentionally no break here so that the escape does its thing.
+          default:
+            $token .= $str{$i};
+            break;
+        }
+        break;
+      default:
+        $token += $str{$i};
+        break;
+    }
+  }
+  if (drupal_strlen($token)) {
+    $tokens[] = array('type' => 'STRING', 'value' => $token);
+    $token = '';
+  }
+  if ($state == 1) {
+    $tokens[] = array('type' => 'END_QUOTE', 'value' => '"');
+  }
+  return $tokens;
+}
+
+
+function article_discovery_advanced_parse_kw_string($str) {
+  $tokens = article_discovery_advanced_tokenize_kw_string($str);
+  $parsed = array(
+    'kw'               => array(),
+    'Title'            => array(),
+    'Author'           => array(),
+    'SubjectTerms'     => array(),
+    'PublicationTitle' => array(),
+    'Series'           => array(),
+    'PublicationYear'  => array(),
+    'ISSN'              => array(),
+    'ISBN'              => array(),
+  );
+  $conjunctions = array(
+    'Title'            => 'AND',
+    'Author'           => 'AND',
+    'SubjectTerms'     => 'AND',
+    'PublicationTitle' => 'AND',
+    'Series'           => 'AND',
+    'PublicationYear'  => 'AND',
+    'ISSN'             => 'AND',
+    'ISBN'             => 'AND',
+  );
+  $state = 0;
+  $label  = 'kw';
+  $paren_level = 0;
+  $queue_queue = array();
+  $queue = array();
+  for ($i=0; $i<count($tokens); ++$i) {
+    switch ($state) {
+      case 0:
+        switch ($tokens[$i]['type']) {
+          case 'BEGIN_PAREN':
+            ++$paren_level;
+            $queue_queue[] = $queue;
+            $queue = array();
+            break;
+          case 'END_PAREN':
+            --$paren_level;
+            $tmp = $queue;
+            //$tmp = implode(' ', $queue);
+            if (count($queue_queue)) {
+              $queue = array_pop($queue_queue);
+            }
+            else {
+              $queue = array();
+            }
+            $queue[] = $tmp ; //sprintf('(%s)', $tmp);
+            break;
+          case 'WS':
+          case 'STRING':
+            $queue[] = $tokens[$i]['value'];
+            break;
+          case 'BEGIN_QUOTE':
+            $state = 1;
+            $queue_queue[] = $queue;
+            $queue = array($tokens[$i]['value']);
+            break;
+          case 'END_QUOTE':
+            //Found an END_QUOTE before a BEGIN_QUOTE ?
+            break;
+          case 'COLON':
+            if (count($queue) > 0) {
+              $tmp = array_pop($queue);
+              if (isset($parsed[$tmp]) && is_array($parsed[$tmp])) {
+                $old_label = $label;
+                $label = $tmp;
+                $state = 2;
+                $queue_queue[] = $paren_level;
+                $paren_level = 0;
+                if (count($queue) > 2) {
+                  $ws1 = array_pop($queue);
+                  $tmp = array_pop($queue);
+                  $ws2 = array_pop($queue);
+                  if (isset($ws1) && $ws1 == ' ' && isset($tmp) && isset($ws2) && $ws2 == ' ' && ($tmp == 'AND' || $tmp == 'OR')) {
+                    $conjunctions[$label] = $tmp;
+                  }
+                  else {
+                    array_push($queue, $ws2);
+                    array_push($queue, $tmp);
+                    array_push($queue, $ws1);
+                  }
+                }
+                $parsed[$old_label] = array_merge($parsed[$old_label], $queue);
+                $queue = array();
+              }
+              else {
+                $queue[] = $tmp . $tokens[$i]['value'];
+              }
+            }
+            else {
+              $queue[] = $tokens[$i]['value'];
+            }
+            break;
+        }
+        break;
+      case 1:
+        switch ($tokens[$i]['type']) {
+          case 'WS':
+          case 'STRING':
+            $queue[] = $tokens[$i]['value'];
+            break;
+          case 'END_QUOTE':
+            $queue[] = $tokens[$i]['value'];
+            $tmp = implode('', $queue);
+            if (count($queue_queue)) {
+              $queue = array_pop($queue_queue);
+            }
+            else {
+              $queue = array();
+            }
+            $queue[] = $tmp;
+            $state = 0;
+            break;
+        }
+        break;
+      case 2:
+        switch ($tokens[$i]['type']) {
+          case 'BEGIN_QUOTE':
+            $state = 3;
+            $queue_queue[] = $queue;
+            $queue = array($tokens[$i]['value']);
+            break;
+          case 'END_QUOTE':
+            //Shouldn't happen here
+            break;
+          case 'BEGIN_PAREN':
+            ++$paren_level;
+            $state = 4;
+          case 'END_PAREN':
+            break;
+          case 'WS':
+          case 'COLON':
+            break;
+          case 'STRING':
+            if (count($queue_queue)) {
+              $paren_level = array_pop($queue_queue);
+            }
+            $parsed[$label][] = $tokens[$i]['value'];
+            $state = 0;
+            break;
+        }
+        break;
+      case 3:
+        switch ($tokens[$i]['type']) {
+          case 'WS':
+          case 'STRING':
+            $queue[] = $tokens[$i]['value'];
+            break;
+          case 'END_QUOTE':
+            $queue[] = $tokens[$i]['value'];
+            $tmp = implode('', $queue);
+            $queue = array();
+            if (count($queue_queue)) {
+              $queue = array_pop($queue_queue);
+            }
+            if (count($queue_queue)) {
+              $paren_level = array_pop($queue_queue);
+            }
+            $parsed[$label][] = $tmp;
+            $label = 'kw';
+            $state = 0;
+            break;
+        }
+        break;
+      case 4:
+        switch ($tokens[$i]['type']) {
+          case 'WS':
+          case 'STRING':
+          case 'COLON':
+            $queue[] = $tokens[$i]['value'];
+            break;
+          case 'BEGIN_PAREN':
+            ++$paren_level;
+            array_push($queue_queue, $queue);
+            $queue = array();
+            break;
+          case 'END_PAREN':
+            --$paren_level;
+            if ($paren_level == 0) {
+              $parsed[$label][] = $queue;
+              $label = 'kw';
+              $state = 0;
+              $queue = array();
+            }
+            else {
+              $tmp = $queue;
+              $queue = array_pop($queue_queue);
+              array_push($queue, $tmp);
+            }
+            break;
+          case 'BEGIN_QUOTE':
+            break;
+        }
+        break;
+    }
+  }
+  if (count($queue)) {
+    $parsed[$label] = array_merge($parsed[$label], $queue);
+    $queue = '';
+  }
+  return array('keywords' => $parsed, 'conjunctions' => $conjunctions);
+}
+

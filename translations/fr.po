@@ -1,0 +1,865 @@
+# $Id$
+#
+# French translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  summon.php: n/a
+#  article_discovery.module: n/a
+#  theme/article_discovery_actions.tpl.php: n/a
+#  article_discovery_advanced.module: n/a
+#  article_discovery.info: n/a
+#  article_discovery_advanced.info: n/a
+#  article_discovery.install: n/a
+#  theme/article_discovery_advanced_status_bar.tpl.php: n/a
+#  theme/article_discovery_status_bar.tpl.php: n/a
+#  theme/article_discovery_date_range.tpl.php: n/a
+#  theme/article_discovery_facets.tpl.php: n/a
+#  theme/article_discovery_link_box.tpl.php: n/a
+#  theme/article_discovery_record.tpl.php: n/a
+#  theme/article_discovery_selection_status.tpl.php: n/a
+#  theme/article_discovery_recommend_box.tpl.php: n/a
+#
+# , 2011.
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2011-11-04 17:16+0100\n"
+"PO-Revision-Date: 2011-11-15 11:45+0100\n"
+"Last-Translator: \n"
+"Language-Team: French <kde-i18n-doc@kde.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n>1);\n"
+"Language: fr\n"
+"X-Generator: Lokalize 1.2\n"
+
+#: summon.php:128
+msgid "article_discovery"
+msgstr "article_discovery"
+
+#: summon.php:128
+msgid "Unable to load Summon API library, see: @url"
+msgstr "Impossible de charger la librairie Summon API, voir: @url"
+
+#: article_discovery.module:22
+msgid "Engine"
+msgstr "Moteur"
+
+#: article_discovery.module:27
+msgid "Search engine"
+msgstr "Moteur de Recherche"
+
+#: article_discovery.module:29
+msgid "This is the search engine accessed by the article discovery module.  At present, only summon is supported."
+msgstr "C'est le moteur de recherche accessible par le module article discovery. Pour le moment, seul Summon est supporté "
+
+#: article_discovery.module:34
+msgid "Username/API id"
+msgstr "Identifant/API id"
+
+#: article_discovery.module:35
+msgid "Your institution's service username or API id."
+msgstr "L'identifant de votre institution ou Identifiant API"
+
+#: article_discovery.module:40
+msgid "Password/API secret key"
+msgstr "Mot de passe / Clé de sécurité API"
+
+#: article_discovery.module:41
+msgid "Your institution's service password or API secret key."
+msgstr "Le mot de passe ou clé de sécurité de votre institution"
+
+#: article_discovery.module:47
+msgid "Results"
+msgstr "Résultats"
+
+#: article_discovery.module:52
+msgid "Articles per page"
+msgstr "Articles par page"
+
+#: article_discovery.module:53
+msgid "How many articles should be shown per page of results?  Your engine may have limits on what this can be."
+msgstr "Nombre d'articles affichés par page de résultat ? "
+
+#: article_discovery.module:58
+msgid "Intitial facet terms"
+msgstr "Termes de départ par facette"
+
+#: article_discovery.module:59
+msgid "When displaying facets, if there are more than N facets, only show the first N with a \"more\" link to display the remainder."
+msgstr "Lorsque les facettes sont affichées, s'il y a plus de N facettes, ne montrer que les N premieres avec un lien \"PLUS\"."
+
+#: article_discovery.module:64
+msgid "Maximum facet terms"
+msgstr "Termes maximums par facette"
+
+#: article_discovery.module:65
+msgid "The maximum number of facets to request from the article discovery engine."
+msgstr "Le nombre maximum de facettes par requête pour le moteur article discovery"
+
+#: article_discovery.module:71
+msgid "Linking"
+msgstr "Liens"
+
+#: article_discovery.module:76
+msgid "Link resolver text/HTML"
+msgstr "Résolveur de Liens text/HTML"
+
+#: article_discovery.module:77
+msgid "What text or HTML do you want displayed for your link resolver?"
+msgstr "Quel texte ou HTML voulez-vous affiché sur le lien du résolveur"
+
+#: article_discovery.module:82
+msgid "Link resolver title text"
+msgstr "Titre du lien du résolveur"
+
+#: article_discovery.module:83
+msgid "What do you want the title attribute for your link resolver links to be?"
+msgstr "Ce que vous souhaitez comme attribut title de votre résolveur de lien"
+
+#: article_discovery.module:88
+msgid "Link resolver link"
+msgstr "Lien du Résolveur"
+
+#: article_discovery.module:89
+msgid "What's the base url for your link resolver?"
+msgstr "URL de base de votre résolveur de liens"
+
+#: article_discovery.module:94
+msgid "Should the link resolver open links in a new window or tab?"
+msgstr "Le lien du résolveur devrait-il ouvrir les liens sur une nouvelle fenêtre ou un nouvel onglet ?"
+
+#: article_discovery.module:95
+msgid "Same tab or window"
+msgstr "Même onglet ou Nouvelle Fenêtre"
+
+#: article_discovery.module:95
+msgid "New tab or window"
+msgstr "Nouvel onglet ou nouvelle fenêtre"
+
+#: article_discovery.module:96
+msgid "This will set links to the link resolver to open in a new window via the target=\"_blank\" attribute on the anchor tag."
+msgstr "Permet de paramétrer les liens du résolveur de lien à ouvrir dans une nouvelle fenêtre via l'attribut target=\"_blank\" " 
+
+#: article_discovery.module:101
+msgid "Should your users be allowed to specifiy a custom link resolver for his or her session"
+msgstr "Les utilisateurs sont-ils autorisés à utiliser leur propre résolveur de lien pour leur session"
+
+#: article_discovery.module:103
+msgid "Disallow users from specifying a custom link resolver"
+msgstr "Ne pas autoriser les utilisateurs à spécifier leur propre résolveur de lien"
+
+#: article_discovery.module:104
+msgid "Allow users to specify a custom link resover"
+msgstr "Autoriser les utilisateurs à spécifier leur propre résolveur de lien"
+
+#: article_discovery.module:106
+msgid "You might want to let your users specify their own link resolver."
+msgstr ""
+"Vous pouvez vouloir laisser les usagers spécifier leur propre résolveur de "
+"liens."
+
+#: article_discovery.module:111
+msgid "EZProxy link"
+msgstr "Lien EZProxy"
+
+#: article_discovery.module:112
+msgid "If your outbound links need to be passed through an EZProxy server, give it's link here.  Otherwise leave it blank.<br/>Include everything before the ? in the url.  Example: http://proxy.example.com/login"
+msgstr "Si vos liens sortants ont besoin de passer par un serveur EZProxy, spécifiez-en le lien. Autrement, laissez le champ vide.<br/>Incluez dans l'url tout ce qui précède le ?."
+
+#: article_discovery.module:117
+msgid "Allow users to specify a custom EZProxy server for his or her session"
+msgstr "Autoriser les utilisateurs à spécifier un serveur EZProxy personnel pour leur session"
+
+#: article_discovery.module:119
+msgid "Disallow users from specifying a custom EZProxy server"
+msgstr "Ne pas autoriser les utilisateurs à spécifier un serveur EZProxy personnel"
+
+#: article_discovery.module:120
+msgid "Allow users to specify a custom EZProxy server"
+msgstr "Autoriser les utilisateurs à spécifier un serveur EZProxy personnel"
+
+#: article_discovery.module:122
+msgid "You might want to let your users specify their own ezproxy server."
+msgstr "Vous souhaiteriez donner la possibilité aux utilisateurs de spécifier leurs propres serveur EZProxy"
+
+#: article_discovery.module:127
+msgid "Allow users to disable use of your EZProxy server for his or her session"
+msgstr "Autoriser les utilisateurs à désactiver l'utilisation de leur serveur EZProxy pour cette session"
+
+#: article_discovery.module:129
+msgid "Disallow users from disabling your EZProxy server"
+msgstr "Ne pas autoriser les utilisateurs à désactiver leur serveur EZProxy"
+
+#: article_discovery.module:130
+msgid "Allow users to disable use of your EZProxy server"
+msgstr "Autoriser les utilisateurs à désactiver leur serveur EZProxy"
+
+#: article_discovery.module:132
+msgid "You might want to let your users disable being passed through a proxy server by the Article Discovery module in addition to or instead of using a custom EZProxy server."
+msgstr "Vous souhaiteriez donner la possibilité aux utilisateurs de désactiver le fait de passer par un serveur de proxy en plus du module Article Discovery ou en utilisant un serveur EZProxy à la place."
+
+#: article_discovery.module:138
+#: theme/article_discovery_actions.tpl.php:21
+#: theme/article_discovery_actions.tpl.php:31
+msgid "Email"
+msgstr "Email"
+
+#: article_discovery.module:143
+msgid "Email subject"
+msgstr "Sujet du mail"
+
+#: article_discovery.module:144
+msgid "The subject to send when exporting articles via email."
+msgstr "Le sujet à envoyer lorsque l'on exporte les articles par mail"
+
+#: article_discovery.module:150
+msgid "Refworks"
+msgstr "Refworks"
+
+#: article_discovery.module:155
+msgid "Vendor"
+msgstr "Fournisseur"
+
+#: article_discovery.module:156
+msgid "The vendor variable to send to refworks.  Most likely it's your institution's name."
+msgstr ""
+"Variable de fournisseur a envoyer à refworks. Certainement le nom de votre "
+"institution."
+
+#: article_discovery.module:161
+msgid "Encoding"
+msgstr "Encodage"
+
+#: article_discovery.module:162
+msgid "The encoding variable to send to refworks."
+msgstr "La variable d'encodage"
+
+#: article_discovery.module:167
+msgid "Filter"
+msgstr "Filtre"
+
+#: article_discovery.module:168
+msgid "The filter variable to send to refworks."
+msgstr "La variable filtre à envoyer à Refworks."
+
+#: article_discovery.module:173
+msgid "Database"
+msgstr "Base de Données"
+
+#: article_discovery.module:174
+msgid "The database variable to send to refworks."
+msgstr "La variable Base de Données à envoyer à Refworks"
+
+#: article_discovery.module:510
+#: article_discovery.module:562
+msgid "Cancel"
+msgstr "Annuler"
+
+#: article_discovery.module:533
+msgid "To"
+msgstr "À"
+
+#: article_discovery.module:534
+msgid "Your email export's recipient."
+msgstr "Email du destinataire de l'export"
+
+#: article_discovery.module:540
+msgid "From"
+msgstr "De"
+
+#: article_discovery.module:541
+msgid "The from address for your export. Probably your email address."
+msgstr "L'adresse de l'expéditeur de l'export. A priori : votre adresse email."
+
+#: article_discovery.module:547
+msgid "Message"
+msgstr "Message"
+
+#: article_discovery.module:548
+msgid "A message to include with your outgoing email."
+msgstr "Message à inclure dans votre mail."
+
+#: article_discovery.module:554
+msgid "Send Email"
+msgstr "Envoyer par Mail"
+
+#: article_discovery.module:603
+msgid "You must enter a valid email address for the To line."
+msgstr "Vous devez entrer une adresse email valide pour le champ \"À\"."
+
+#: article_discovery.module:606
+msgid "You must enter a valid email address for the From line."
+msgstr "Vous devez entrer une adresse email valide pour le champ \"De\"."
+
+#: article_discovery.module:609
+msgid "You must have selected at least one record to generate an email."
+msgstr "Vous devez selectionner au moins un enregistrement pour générer un email."
+
+#: article_discovery.module:1053
+#: article_discovery.module:1120
+#: article_discovery.module:202
+#: article_discovery.module:203
+msgid "Article Search"
+msgstr "Recherche dans HECo"
+
+#: article_discovery.module:1057
+msgid "Enter the terms you wish to search for."
+msgstr "Entrez vos termes de recherche"
+
+#: article_discovery.module:1062
+#: article_discovery_advanced.module:229
+msgid "Limit to articles from scholarly journals"
+msgstr "Limiter aux articles de publications savantes"
+
+#: article_discovery.module:1068
+#: article_discovery_advanced.module:235
+msgid "Exclude newspaper articles"
+msgstr "Exclure les articles de presse"
+
+#: article_discovery.module:1074
+#: article_discovery_advanced.module:241
+msgid "Limit to articles with full text online"
+msgstr "Documents en texte intégral (en ligne)"
+
+#: article_discovery.module:1080
+#: article_discovery_advanced.module:247
+msgid "Add results beyond this library's holdings"
+msgstr "Inclure d'autres ressources documentaires"
+
+#: article_discovery.module:1083
+msgid "Search"
+msgstr "Recherche"
+
+#: article_discovery.module:1095
+msgid "Article Discovery Search Box"
+msgstr "Boite de recherche"
+
+#: article_discovery.module:1103
+msgid "Article Discovery Facet Box"
+msgstr "Boite des facettes"
+
+#: article_discovery.module:1125
+msgid "Refine Search"
+msgstr "Affiner la Recherche"
+
+#: article_discovery.module:526
+msgid "You have selected 1 record for export."
+msgid_plural "You have selected @count records for export."
+msgstr[0] "1 enregistrement sélectionné pour export."
+msgstr[1] ""
+
+#: article_discovery.module:187
+msgid "administer article discovery"
+msgstr "Administrer Article Discovery"
+
+#: article_discovery.module:188
+msgid "search article discovery"
+msgstr "Rechercher dans Article Discovery"
+
+#: article_discovery.module:189
+msgid "import article discovery"
+msgstr "Importer dans Article Discovery"
+
+#: article_discovery.module:209
+#: article_discovery.module:210
+#: article_discovery.module:216
+#: article_discovery.module:217
+msgid "Article Record"
+msgstr "Notice d'Article"
+
+#: article_discovery.module:225
+#: article_discovery.module:226
+#: article_discovery.module:232
+#: article_discovery.module:233
+#: article_discovery.module:239
+#: article_discovery.module:240
+msgid "Article Select"
+msgstr "Selection d'Article"
+
+#: article_discovery.module:248
+#: article_discovery.module:249
+msgid "Export Selected Articles Via Email"
+msgstr "Exporter les Articles sélectionnés par Email"
+
+#: article_discovery.module:256
+#: article_discovery.module:257
+#: article_discovery.module:263
+#: article_discovery.module:264
+msgid "Export Selected Articles to Refworks"
+msgstr "Exporter les Articles selectionnés vers Refworks"
+
+#: article_discovery.module:272
+#: article_discovery.module:273
+#: article_discovery.module:279
+#: article_discovery.module:280
+msgid "Export Selected Articles as RIS"
+msgstr "Exporter les Articles selectionnés comme RIS"
+
+#: article_discovery.module:288
+#: article_discovery.info:0
+msgid "Article Discovery"
+msgstr "Archipel+"
+
+#: article_discovery.module:289
+msgid "Configure your Article Discovery settings."
+msgstr "Configurer les paramètres de l'Article de Découverte."
+
+#: article_discovery_advanced.module:36
+msgid "advanced search article discovery"
+msgstr "Recherche avancée"
+
+#: article_discovery_advanced.module:1075
+#: article_discovery_advanced.module:1115
+msgid "Advanced Search"
+msgstr "Recherche avancée"
+
+#: article_discovery_advanced.module:206
+msgid "All Fields"
+msgstr "Tous les champs"
+
+#: article_discovery_advanced.module:207 !AREVOIR!
+msgid "Journal/Serial Title"
+msgstr "Périodique/Titre de Collection "
+
+#: article_discovery_advanced.module:207 !AREVOIR!
+msgid "Series"
+msgstr "Collections"
+
+#: article_discovery_advanced.module:441
+msgid "Year of Publication"
+msgstr "Année de Publication"
+
+#: article_discovery_advanced.module:445
+msgid "Between"
+msgstr "Entre"
+
+#: article_discovery_advanced.module:445
+msgid "In"
+msgstr "Exactement"
+
+
+#: article_discovery_advanced.module:15
+#: article_discovery_advanced.module:16
+#: article_discovery_advanced.info:0
+msgid "Article Discovery Advanced Search"
+msgstr "Recherche Avancée"
+
+#: article_discovery.install:45
+#: article_discovery.install:75
+msgid "The table to store exported articles for a brief period."
+msgstr "La table pour enregistrer les articles exportés pour une courte période."
+
+#: article_discovery.install:48
+#: article_discovery.install:78
+msgid "The id for exporting a citation list"
+msgstr "L'identifiant pour l'exportation d'une liste de citation"
+
+#: article_discovery.install:53
+#: article_discovery.install:83
+msgid "The timestamp for when the citation list was created"
+msgstr "Le timestamp lorsque la liste de citation a été créée"
+
+#: article_discovery.install:57
+#: article_discovery.install:87
+msgid "Serials Solutions' ID for a resource"
+msgstr "Identifiant Serials Solution pour une ressource"
+
+#: article_discovery.info:0
+msgid "This module implements a client for Article Discovery engines.  Version 0.0.2 supports Serials Solutions' Summon API."
+msgstr "Ce module implémente un client pour le moteur Article Discovery. Version 0.0.2 support l'API Ser"
+
+#: article_discovery_advanced.info:0
+msgid "This module implements an advanced search interface for the main Article Discovery module."
+msgstr "Ce module implémente une interface de recherche avancée pour le module Article Discovery"
+
+#: theme/article_discovery_actions.tpl.php:19
+#: theme/article_discovery_actions.tpl.php:29
+msgid "Selected items"
+msgstr "Éléments sélectionnés"
+
+#: theme/article_discovery_actions.tpl.php:20
+#: theme/article_discovery_actions.tpl.php:30
+msgid "List"
+msgstr "Liste"
+
+#: theme/article_discovery_actions.tpl.php:22
+#: theme/article_discovery_actions.tpl.php:32
+msgid "Export as RIS"
+msgstr "RIS"
+
+#: theme/article_discovery_actions.tpl.php:24
+msgid "Export to Refworks "
+msgstr "Refworks"
+
+#: theme/article_discovery_actions.tpl.php:26
+#: theme/article_discovery_actions.tpl.php:36
+msgid "Clear"
+msgstr "Effacer"
+
+#: theme/article_discovery_actions.tpl.php:34
+msgid "Export to Refworks"
+msgstr "Exporter vers Refworks"
+
+#: theme/article_discovery_actions.tpl.php:41
+msgid "Select All on This Page"
+msgstr "Tout Sélectionner sur cette page"
+
+
+#: theme/article_discovery_advanced_status_bar.tpl.php:32
+#: theme/article_discovery_status_bar.tpl.php:23
+msgid "Your article discovery search for <strong>@criteria</strong> found <strong>@count</strong> results.  Showing @deb - @fin"
+msgstr "Votre recherche pour <strong>@criteria</strong> a retourné <strong>@count</strong> résultats. Affichés @deb - @fin"
+
+#: theme/article_discovery_advanced_status_bar.tpl.php:42
+#: theme/article_discovery_status_bar.tpl.php:33
+msgid "Showing @deb - @fin of @count."
+msgstr "Affichés @deb - @fin sur @count."
+
+#: theme/article_discovery_advanced_status_bar.tpl.php:50
+msgid "Refine this search"
+msgstr "Recherche avancée"
+
+#: theme/article_discovery_date_range.tpl.php:14
+msgid "January"
+msgstr "Janvier"
+
+#: theme/article_discovery_date_range.tpl.php:15
+msgid "February"
+msgstr "Février"
+
+#: theme/article_discovery_date_range.tpl.php:16
+msgid "March"
+msgstr "Mars"
+
+#: theme/article_discovery_date_range.tpl.php:17
+msgid "April"
+msgstr "Avril"
+
+#: theme/article_discovery_date_range.tpl.php:18
+msgid "May"
+msgstr "Mai"
+
+#: theme/article_discovery_date_range.tpl.php:19
+msgid "June"
+msgstr "Juin"
+
+#: theme/article_discovery_date_range.tpl.php:20
+msgid "July"
+msgstr "Juillet"
+
+#: theme/article_discovery_date_range.tpl.php:21
+msgid "August"
+msgstr "Août"
+
+#: theme/article_discovery_date_range.tpl.php:22
+msgid "September"
+msgstr "Septembre"
+
+#: theme/article_discovery_date_range.tpl.php:23
+msgid "October"
+msgstr "Octobre"
+
+#: theme/article_discovery_date_range.tpl.php:24
+msgid "November"
+msgstr "Novembre"
+
+#: theme/article_discovery_date_range.tpl.php:25
+msgid "December"
+msgstr "Décembre"
+
+#: theme/article_discovery_date_range.tpl.php:29
+msgid "-present"
+msgstr "-Aujourd'hui"
+
+#: theme/article_discovery_date_range.tpl.php:32
+msgid "up to @annee"
+msgstr "Jusqu'à @annee"
+
+#: theme/article_discovery_facets.tpl.php:51
+msgid "more..."
+msgstr "plus..."
+
+#: theme/article_discovery_facets.tpl.php:57
+msgid "less..."
+msgstr "moins..."
+
+#: theme/article_discovery_link_box.tpl.php:27
+msgid "Full Text Online"
+msgstr "Texte Intégral en Ligne"
+
+#: theme/article_discovery_link_box.tpl.php:29
+msgid "Citation Online (no full text online)"
+msgstr "Citation en Ligne (pas de texte intégral)"
+
+#: theme/article_discovery_record.tpl.php:47
+msgid "by"
+msgstr "par"
+
+#: theme/article_discovery_record.tpl.php:121
+msgid "Abstract"
+msgstr "Résumé"
+
+#: theme/article_discovery_record.tpl.php:128
+msgid "Subjects"
+msgstr "Sujet"
+
+#: theme/article_discovery_record.tpl.php:143
+msgid "Genre"
+msgstr "Genre"
+
+#: theme/article_discovery_record.tpl.php:150
+msgid "Location"
+msgstr "Localisation"
+
+#: theme/article_discovery_selection_status.tpl.php:19
+msgid "Back to article discovery results"
+msgstr "Retour aux résultats"
+
+#: theme/article_discovery_recommend_box.tpl.php:
+msgid "Recommendation: We found a specialized collection that might help you ..."
+msgstr ""
+"Recommandation : nous avons trouvé une collection spécialisée qui peut vous "
+"aider."
+
+msgid "Recommendation: We found some specialized collections that might help you ..."
+msgstr "La Recommandation : nous avons trouvé quelques collections spécialisées qui peuvent vous aider."
+
+#: Ajout dynamiques Facettes
+msgid "Publication Date"
+msgstr "Date de Publication"
+
+msgid "Subject"
+msgstr "Sujets"
+
+msgid "Format"
+msgstr "Type de document"
+
+#: Tri
+msgid "Sort:"
+msgstr "Tri:"
+
+msgid "Relevance"
+msgstr "Pertinence"
+
+msgid "Date (newest first)"
+msgstr "Date (la plus récente)"
+
+msgid "Date (oldest first)"
+msgstr "Date (la plus ancienne)"
+
+
+
+
+#: Ajout Types de Documents Dynamiques
+
+msgid "Conference Proceeding"
+msgstr "Acte de conférence"
+
+msgid "Newspaper Article"
+msgstr "Article de presse"
+
+msgid "Journal Article"
+msgstr "Article de périodique"
+
+msgid "Patent"
+msgstr "Brevet"
+
+msgid "Map"
+msgstr "Carte"
+
+msgid "Book Chapter"
+msgstr "Chapitre de livre"
+
+msgid "Special Collection"
+msgstr "Collection spéciale"
+
+msgid "Book Review"
+msgstr "Critique littéraire"
+
+msgid "Dissertation"
+msgstr "Dissertations"
+
+msgid "Archival Material"
+msgstr "Document d'archive"
+
+msgid "Music Recording"
+msgstr "Enregistrement musical"
+
+msgid "Audio Recording"
+msgstr "Enregistrement sonore"
+
+msgid "Video Recording"
+msgstr "Enregistrement vidéo"
+
+msgid "Computer File"
+msgstr "Fichier d'ordinateur"
+
+msgid "Image"
+msgstr "Image"
+
+msgid "Newspaper"
+msgstr "Journal"
+
+msgid "Book / eBook"
+msgstr "Livre / Livre électronique"
+
+msgid "Manuscript"
+msgstr "Manuscrit"
+
+msgid "Microfilm"
+msgstr "Microfilm"
+
+msgid "Standard"
+msgstr "Norme"
+
+msgid "Music Score"
+msgstr "Partition"
+
+msgid "Sheet Music"
+msgstr "Musique mécanique"
+
+msgid "Photograph"
+msgstr "Photographie"
+
+msgid "Government Document"
+msgstr "Publication officielle"
+
+msgid "Journal / eJournal"
+msgstr "Périodique / Périodique électronique"
+
+msgid "Report"
+msgstr "Rapport"
+
+msgid "Reference"
+msgstr "Réference"
+
+msgid "Web Resource"
+msgstr "Ressource Web"
+ 
+
+#: ????
+
+msgid "Pamphlet"
+msgstr "Brochure"
+
+msgid "Poetry"
+msgstr "Poésie"
+
+msgid "Poem"
+msgstr "Poème"
+
+msgid "Market Research"
+msgstr "Recherche de Marché"
+
+msgid "Trade Publication Article"
+msgstr "Article de la publication spécialisée"
+
+msgid "Newsletter"
+msgstr "Bulletin d'information"
+
+msgid "Paper"
+msgstr "Documents"
+
+msgid "Publication"
+msgstr "Publications"
+
+msgid "General Information"
+msgstr "Général"
+
+
+#: Ajout Langues Dynamiques
+msgid "All"
+msgstr "Tous"
+
+msgid "English"
+msgstr "Anglais"
+
+msgid "Spanish"
+msgstr "Espagnol"
+
+msgid "French"
+msgstr "Français"
+
+msgid "German"
+msgstr "Allemand"
+
+msgid "Korean"
+msgstr "Coréen"
+
+msgid "Portuguese"
+msgstr "Portugais"
+
+msgid "Russian"
+msgstr "Russe"
+
+msgid "Chinese"
+msgstr "Chinois"
+
+msgid "Italian"
+msgstr "Italien"
+
+msgid "Japanese"
+msgstr "Japonais"
+
+msgid "Latin"
+msgstr "Latin"
+
+msgid "Dutch"
+msgstr "Néerlandais"
+
+msgid "Arabic"
+msgstr "Arabe"
+
+msgid "Polish"
+msgstr "Polonais"
+
+msgid "Swedish"
+msgstr "Suedois"
+
+msgid "Turkish"
+msgstr "Turque"
+
+msgid "Czech"
+msgstr "Tchèque"
+
+msgid "Hebrew"
+msgstr "Hébreu"
+
+msgid "Hindi"
+msgstr "Hindou"
+
+msgid "Indonesian"
+msgstr "Indonésien"
+
+msgid "Danish"
+msgstr "Danois"
+
+msgid "Undetermined"
+msgstr "Underterminé"
+
+msgid "Croatian"
+msgstr "Croate"
+
+msgid "Hungarian"
+msgstr "Hongrois"
+
+msgid "Unknown"
+msgstr "Inconnu"
+
+msgid "Greek"
+msgstr "Grec"
+
+msgid "Urdu"
+msgstr "Ourdou"
+
+msgid "Thai"
+msgstr "Thaïlandais"
+
+msgid "Norwegian"
+msgstr "Norvégien"
+
+msgid "Persian"
+msgstr "Perse"
+

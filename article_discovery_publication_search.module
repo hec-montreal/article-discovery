@@ -1,0 +1,226 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function article_discovery_publication_search_menu() {
+  return array(
+    'publication/search' => array(
+      'title'            => 'Publication Search',
+      'description'      => 'Publication Search',
+      'access arguments' => array('search article discovery'),
+      'page callback'    => 'article_discovery_publication_search_display',
+      'type'             => MENU_CALLBACK,
+    ),
+  );
+}
+
+/**
+ * Implements hook_block().
+ */
+function article_discovery_publication_search_block($op='list', $delta=0, $edit = array()) {
+    switch ($op) {
+    case 'list':
+      return array(
+        'publication-search-box' => array(
+          'info' => t('Article Discovery Publication Search Box'), //Call it the AD Search box.
+          'cache' => BLOCK_NO_CACHE, //Don't cache this block.
+          //'weight' => 0, //No default weight specified.
+          'status' => 0, //Default disabled.
+          'visibility' => 0, //Show only on listed pages.
+          'pages' => '',
+        ),
+      );
+      break;
+    case 'configure':
+      return array();
+    case 'save':
+    case 'view':
+      $block = array();
+      switch ($delta) {
+        case 'publication-search-box':
+          $block['content'] = drupal_get_form('article_discovery_publication_search_box', array_merge($_GET, $_POST));
+          $block['subject'] = t('Publication Search');
+          break;
+        default:
+          break;
+      }
+      return $block;
+      return $block;
+      break;
+    default:
+      break;
+  }
+}
+
+function article_discovery_publication_search_box(&$form_state, $defaults = array()) {
+    return array(
+    '#method' => 'get',
+    '#action' => url('publication/search'),
+    'kw' => array(
+     // '#title' => t('Article Search'),
+      '#type' => 'textfield',
+      '#size' => 15,
+      '#default_value' => (isset($defaults['kw'])?$defaults['kw']:''),
+      '#attributes' => array('title' => t('Enter the terms you wish to search for.')),
+    ),
+    'scholarly' => array(
+      '#return_value' => 1,
+      '#default_value' => (isset($defaults['scholarly'])?'1':''),
+      '#title' => t('Limit to articles from scholarly journals'),
+      '#type' => 'checkbox',
+    ),
+    'newspapers' => array(
+      '#return_value' => 1,
+      '#default_value' => (isset($defaults['newspapers'])?'1':''),
+      '#title' => t('Exclude newspaper articles'),
+      '#type' => 'checkbox',
+    ),
+    'fulltext' => array(
+      '#return_value' => 1,
+      '#default_value' => (isset($defaults['fulltext'])?'1':''),
+      '#title' => t('Limit to articles with full text online'),
+      '#type' => 'checkbox',
+    ),
+    'local' => array(
+      '#return_value' => 1,
+      '#default_value' => (isset($defaults['local'])?'1':''),
+      '#title' => t("Add results beyond this library's holdings"),
+      '#type' => 'checkbox',
+    ),
+    'submit' => array('#type' => 'submit', '#value' => t('Search')),
+  );
+}
+
+function article_discovery_publication_search_theme() {
+  $path = drupal_get_path('module', 'article_discovery') . '/theme';
+   return array(
+    'article_discovery_publication_results' => array(
+      'path'      => $path,
+      'template'  => 'article_discovery_publication_results',
+      'arguments' => array('results' => NULL, 'pager' => ''),
+    ),
+  );
+}
+
+function article_discovery_publication_search_display() {
+  module_load_include('php', 'article_discovery', 'summon');
+  $s = new SummonClient(
+    variable_get('article_discovery_username', ''),
+    variable_get('article_discovery_password', '')
+  );
+  if (isset($_SESSION['article_discovery']) && isset($_SESSION['article_discovery']['session_id'])) {
+    $s->session($_SESSION['article_discovery']['session_id']);
+  }
+  $query = article_discovery_parse_query($_REQUEST);
+  $parameters = article_discovery_collect_parameters($query);
+
+  $publications = array();
+  $page = 1;
+  if (isset($_GET['page'])) {
+    $page = (int) $_GET['page'] + 1;
+  }
+  $facet_count = 30;
+  $facets = array(sprintf('PublicationTitle,and,%d,%d', $page, $facet_count));
+  $res = article_discovery_submit_query($s, $parameters['query'], $facets, array(), 1, 0, NULL, $parameters['options']);
+  foreach ($res->facetFields as $facetFields) {
+    if ($facetFields->displayName == 'PublicationTitle') {
+      $x1 = ($page - 1) * $facet_count;
+      $x2 = $x1 + count($facetFields->counts);
+      $y1 = $facetFields->counts[0]->count;
+      $y2 = $facetFields->counts[count($facetFields->counts)-1]->count;
+      $m  = ($y2 - $y1) / ($x2 - $x1 );
+      $b  = $y2 - $m * $x2;
+      if ($m != 0 ) {
+        $publication_count = (int) (-1 * $b) / $m;
+      }
+      else {
+        $publication_count = count($facetFields->counts);
+      }
+      foreach ($facetFields->counts as $count) {
+        $publication = cache_get($count->value, 'cache_publication');
+        if ($publication) {
+          $publication = $publication->data;
+        }
+        else {
+          $publication = array('count' => $count->count, 'value' => $count->value);
+          $tmp_options = $parameters['options'];
+          $tmp_options['s.sort'] = 'PublicationDate:asc';
+          $tmp_options['s.cmd']  = $count->applyCommand;
+          $article = article_discovery_submit_query($s, $parameters['query'], NULL, array(), 1, 1, NULL, $tmp_options);
+          if (count($article->documents)) {
+            $publication['start'] = $article->documents[0]->PublicationDate_xml;
+            if (isset($article->documents[0]->PublicationTitle)) {
+              $publication['title'] = $article->documents[0]->PublicationTitle;
+            }
+            else {
+              $publication['title'] = array();
+            }
+            if (isset($article->documents[0]->ISSN)) {
+              $publication['issn']  = $article->documents[0]->ISSN;
+            }
+            else {
+              $publication['issn'] = array();
+            }
+            if (isset($article->documents[0]->EISSN)) {
+              $publication['eissn'] = $article->documents[0]->EISSN;
+            }
+            else {
+              $publication['eissn'] = array();
+            }
+            if (isset($article->documents[0]->DatabaseTitle)) {
+              $publication['database']   = $article->documents[0]->DatabaseTitle;
+            }
+            else {
+              $publication['database'] = array();
+            }
+            if (isset($article->documents[0]->Discipline)) {
+              $publication['discipline'] = $article->documents[0]->Discipline;
+            }
+            else {
+              $publication['discipline'] = array();
+            }
+            if (isset($article->documents[0]->SubjectTerms)) {
+              $publication['subject-terms'] = $article->documents[0]->SubjectTerms;
+            }
+            else {
+              $publication['subject-terms'] = array();
+            }
+          }
+          $tmp_options['s.sort'] = 'PublicationDate:desc';
+          $article = article_discovery_submit_query($s, $parameters['query'], NULL, array(), 1, 1, NULL, $tmp_options);
+          if (count($article->documents)) {
+            $publication['end'] = $article->documents[0]->PublicationDate_xml;
+            if (isset($article->documents[0]->PublicationTitle)) {
+              $publication['title'] = array_unique(array_merge($publication['title'], $article->documents[0]->PublicationTitle));
+            }
+            else {
+              $publication['title'] = array(ucfirst($count->value));
+            }
+            if (isset($article->documents[0]->ISSN)) {
+              $publication['issn']  = array_unique(array_merge($publication['issn'], $article->documents[0]->ISSN));
+            }
+            if (isset($article->documents[0]->EISSN)) {
+              $publication['eissn'] = array_unique(array_merge($publication['eissn'], $article->documents[0]->EISSN));
+            }
+            if (isset($article->documents[0]->DatabaseTitle)) {
+              $publication['database']   = array_unique(array_merge($publication['database'], $article->documents[0]->DatabaseTitle));
+            }
+            if (isset($article->documents[0]->Discipline)) {
+              $publication['discipline'] = array_unique(array_merge($publication['discipline'], $article->documents[0]->Discipline));
+            }
+            if (isset($article->documents[0]->SubjectTerms)) {
+              $publication['subject-terms'] = array_unique(array_merge($publication['subject-terms'], $article->documents[0]->SubjectTerms));
+            }
+          }
+          cache_set($count->value, $publication, 'cache_publication', time() + 60*60*24*30);
+        }
+        $publications[] = $publication;
+      }
+    }
+  }
+  article_discovery_search_pager_init($publication_count, $facet_count, 0);
+  $pager = theme('pager');
+  
+  return theme('article_discovery_publication_results', $publications, $pager);
+}

@@ -1,0 +1,96 @@
+<?php
+/**
+ * @file
+ *
+ * The install file for the article_discovery module.  At present we don't create database tables,
+ * but we do store variables.  These need to be removed by hook_uninstall, hence this file.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function article_discovery_uninstall() {
+  drupal_uninstall_schema('article_discovery');
+
+  //We're maintaining this list by hand.
+  $variables = array(
+    'article_discovery_engine',
+    'article_discovery_username',
+    'article_discovery_password',
+    'article_discovery_articles_per_page',
+    'article_discovery_initial_facet_terms',
+    'article_discovery_max_facet_terms',
+    'article_discovery_link_resolver_text',
+    'article_discovery_link_resolver_title_text',
+    'article_discovery_link_resolver_link',
+    'article_discovery_link_resolver_uses_new_window',
+    'article_discovery_allow_custom_link_resolver',
+    'article_discovery_ezproxy_link',
+    'article_discovery_allow_custom_ezproxy',
+    'article_discovery_allow_disable_ezproxy',
+    'article_discovery_email_subject',
+    'article_discovery_refworks_vendor',
+    'article_discovery_refworks_encoding',
+    'article_discovery_refworks_filter',
+    'article_discovery_refworks_database',
+  );
+  foreach ($variables as $variable) {
+    variable_del($variable);
+  }
+}
+
+
+function article_discovery_schema() {
+  $schema['article_discovery_export'] = array(
+    'description' => t('The table to store exported articles for a brief period.'),
+    'fields' => array(
+      'id' => array(
+        'description' => t('The id for exporting a citation list'),
+        'type' => 'varchar',
+        'length' => 32,
+      ),
+      'created' => array(
+        'description' => t('The timestamp for when the citation list was created'),
+        'type' => 'int',
+      ),
+      'aid' => array(
+        'description' => t("Serials Solutions' ID for a resource"),
+        'type' => 'varchar',
+        'length' => 255,
+      ),
+    ),
+  );
+  return $schema;
+}
+
+function article_discovery_install() {
+  drupal_install_schema('article_discovery');
+}
+
+
+function article_discovery_update_6000(&$sandbox) {
+  $ret = array();
+  $schema = array(
+    'article_discovery_export' => array(
+      'description' =>  t('The table to store exported articles for a brief period.'),
+      'fields' => array(
+        'id' => array(
+          'description' => t('The id for exporting a citation list'),
+          'type' => 'varchar',
+          'length' => 32,
+        ),
+        'created' => array(
+          'description' => t('The timestamp for when the citation list was created'),
+          'type' => 'int',
+        ),
+        'aid' => array(
+          'description' => t("Serials Solutions' ID for a resource"),
+          'type' => 'varchar',
+          'length' => 255,
+        ),
+      ),
+    ),
+  );
+  db_create_table($ret, 'article_discovery_export', $schema['article_discovery_export']);
+  return $ret;
+}

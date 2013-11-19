@@ -1,0 +1,5 @@
+; $Id$
+name = Article Discovery Publication Search
+ description = "This module implements a client for Article Discovery engines.  Version 0.0.2 supports Serials Solutions' Summon API."
+core = 6.x
+php = 5
