@@ -444,7 +444,7 @@ msgstr "Exactement"
 #: article_discovery_advanced.module:16
 #: article_discovery_advanced.info:0
 msgid "Article Discovery Advanced Search"
-msgstr "Recherche Avancée"
+msgstr "Recherche avancée"
 
 #: article_discovery.install:45
 #: article_discovery.install:75
