@@ -10,6 +10,7 @@
  */
 
 if (!is_null($date)) {
+
   $output = array();
   if (is_array($date)) {
     sort($date);
@@ -23,6 +24,11 @@ if (!is_null($date)) {
     $date = drupal_substr($date, 1, 4);
   } else if ($firstChar === 'c') {
     $date = drupal_substr($date, 1);
+  }
+
+  // zonecours: Special case (yyyy-Month)
+  if(preg_match("/\d{4}-\D+/", $date, $prgo)) {
+    $date = drupal_substr($date, 0, 4);
   }
 
   if (drupal_strlen($date) == 4) {

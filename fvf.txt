@@ -1,0 +1,1 @@
+ContentType,Book Review,t|ContentType,Newspaper Article,t|SourceType,Library Catalog,f

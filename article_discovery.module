@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * A module providing an interface for searching an article discovery engine
@@ -756,7 +757,7 @@ function article_discovery_parse_query($source) {
   if (count($attrs))
     return $attrs;
   mb_regex_encoding('UTF-8');
-  foreach (array('kw', 'scholarly', 'newspapers', 'fulltext', 'local', 'facet', 'type', 'bool', 'lookfor', 'page', 'sort', 'author', 'title', 'journal', 'subject', 'volume', 'issue', 'format') as $key) {
+  foreach (array('kw', 'scholarly', 'newspapers', 'heconly', 'fulltext', 'local', 'facet', 'type', 'bool', 'lookfor', 'page', 'sort', 'author', 'title', 'journal', 'subject', 'volume', 'issue', 'format') as $key) {
     if (isset($source[$key])) {
       if (is_array($source[$key])) {
         $attrs[$key] = array();
@@ -1064,6 +1065,12 @@ function article_discovery_search_box(&$form_state, $defaults = array()) {
       '#return_value' => 1,
       '#default_value' => (isset($defaults['scholarly'])?'1':''),
       '#title' => t('Limit to articles from scholarly journals'),
+      '#type' => 'checkbox',
+    ),
+    'heconly' => array(
+      '#return_value' => 1,
+      '#default_value' => (isset($defaults['heconly'])?'1':''),
+      '#title' => t('Limiter au catalogue de la bibliothèque'),
       '#type' => 'checkbox',
     ),
     'newspapers' => array(
@@ -1461,7 +1468,7 @@ function _article_discovery_facets_prepare($facets, $range_facets, $uri, $variab
   }
 
   //Okay, now for the checkboxes for refining a search.
-  $refine = array( 'scholarly' => array(), 'fulltext' => array(), 'newspapers' => array(), 'local' => array());
+  $refine = array( 'scholarly' => array(), 'fulltext' => array(), 'newspapers' => array(), 'local' => array(), 'heconly' => array());
   foreach ($refine as $k => &$v) {
     $tmp = $variables;
     if ($tmp[$k]) {
@@ -1782,6 +1789,9 @@ function article_discovery_collect_parameters($query) {
   }
   if (isset($query['newspapers']) && $query['newspapers']) {
     $options['s.fvf'][] = 'ContentType,Newspaper\ Article,true';
+  }
+  if(isset($query['heconly']) && $query['heconly']) {
+    $options['s.fvf'][] = 'SourceType,Library\ Catalog';
   }
   if (isset($query['page']) && $query['page']) {
     $start = ((int)$query['page'])+1;

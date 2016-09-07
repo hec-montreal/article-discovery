@@ -591,7 +591,7 @@ msgstr "Texte Intégral en Ligne"
 
 #: theme/article_discovery_link_box.tpl.php:29
 msgid "Citation Online (no full text online)"
-msgstr "Citation en Ligne (pas de texte intégral)"
+msgstr "Référence (pas de texte intégral)"
 
 #: theme/article_discovery_record.tpl.php:47
 msgid "by"
