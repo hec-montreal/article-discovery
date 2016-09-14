@@ -34,10 +34,5 @@ $sakai_label = 'Importer dans ZoneCours';
     <?php if ($sakai): ?>
 	  <div class="article-discovery-sakai-import-link"><?php print l($sakai_label, $sakai_url); ?></div>
 	<?php endif; ?>
-    <?php if ($data['fulltext']): ?>
-      <?php print t('Full Text Online'); ?>
-    <?php else: ?>
-      <?php print t('Citation Online (no full text online)'); ?>
-    <?php endif; ?>
   </div>
 </div>
