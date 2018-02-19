@@ -994,7 +994,7 @@ function article_discovery_selection() {
         _article_discovery_link_box_prepare(array(
           'linkurl_base' => (isset($_SESSION['article_discovery']['linkurl_base'])?$_SESSION['article_discovery']['linkurl_base']:NULL),
           'linkurl_id'   => (isset($_SESSION['article_discovery']['linkurl_id'])?$_SESSION['article_discovery']['linkurl_id']:NULL),
-          'openurl'      => sakai_tidy_openurl($res->documents[$i]->openUrl),
+          'openurl'      => sakai_tidy_openurl($res->documents[$i]->openUrl, $res->documents[$i]->ISBN),
           'fulltext'     => $res->documents[$i]->hasFullText,
           'date'         => $res->documents[$i]->PublicationDate_xml[0],
           'id'           => $res->documents[$i]->ID[0],
@@ -1577,7 +1577,7 @@ function article_discovery_query($query) {
         _article_discovery_link_box_prepare(array(
           'linkurl_base' => (isset($_SESSION['article_discovery']['linkurl_base'])?$_SESSION['article_discovery']['linkurl_base']:NULL),
           'linkurl_id'   => (isset($_SESSION['article_discovery']['linkurl_id'])?$_SESSION['article_discovery']['linkurl_id']:NULL),
-          'openurl'      => sakai_tidy_openurl($res->documents[$i]->openUrl),
+          'openurl'      => sakai_tidy_openurl($res->documents[$i]->openUrl, $res->documents[$i]->ISBN),
           'fulltext'     => $res->documents[$i]->hasFullText,
           'date'         => $res->documents[$i]->PublicationDate_xml[0],
           'id'           => $res->documents[$i]->ID[0],
@@ -1793,6 +1793,9 @@ function article_discovery_collect_parameters($query) {
   if(isset($query['heconly']) && $query['heconly']) {
     $options['s.fvf'][] = 'SourceType,Library\ Catalog';
   }
+  if (isset($query['ISBN']) && $query['ISBN']) {
+    $options['s.fvf'][] = 'ISBN,true';
+  }
   if (isset($query['page']) && $query['page']) {
     $start = ((int)$query['page'])+1;
   }
@@ -1849,12 +1852,13 @@ function article_discovery_submit_query($searcher, $query = NULL , $facets = NUL
  * Returns FALSE if no rft.genre can be determined.
  *
  * @param string $openurl The openurl to clean
+ * @param string $isbns the of isbns to choose from
  *
  * @return mixed FALSE   if $openurl is uncleanable.
  *               string  a clean version of $openurl if possible.
  *
  */
-function sakai_tidy_openurl($openurl) {
+function sakai_tidy_openurl($openurl, $isbns) {
   $kvpairs = explode('&', $openurl);
   $clean = array();
   $has_genre  = FALSE;
@@ -1880,6 +1884,9 @@ function sakai_tidy_openurl($openurl) {
     }
     if ($k == 'rft.inventor') {
       $k = 'rft.author';
+    }
+    if ($k == 'rft.isbn') {
+      $v = getSakaiValidIsbn($isbns);
     }
     if ($k == 'rft.genre') {
       $has_genre  = TRUE;
@@ -1917,3 +1924,26 @@ function sakai_tidy_openurl($openurl) {
   return $openurl;
 }
 
+/**
+ * getSakaiValidIsbn
+ *
+ * This function ensures the isbn used is the one with 13 characters
+ * otherwise use the first isbn on the list
+ *
+ * @param string $isbns - list of isbns
+ *
+ * @return validIsbn
+ *
+ */
+function getSakaiValidIsbn ($isbns){
+  for ($i=0; $i < count($isbns); ++$i) {
+    if (strlen($isbns[$i]) == 13){
+      $validIsbn = $isbns[$i];
+    }
+  }
+  $validIsbn = $validIsbn ?: $isbns[0];
+
+  print($validIsbn);
+  return $validIsbn;
+  
+}
