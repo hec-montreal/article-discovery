@@ -12,7 +12,13 @@
  * @param $facets_available
  *
  */
-
+ 
+$refine = $variables['refine'];
+$limits = $variables['limits'];
+$racets_applied   = $variables['facets_applied'];
+$facets_available = $variables['facets_available'];
+ 
+ 
   if (!isset($limits['num-terms'])) {
     $limits['num-terms'] = variable_get('article_discovery_initial_facet_terms', 6);
   }
@@ -49,13 +55,13 @@
 <?php   for ($i=0; $i < $limits['num-terms'] ; ++$i) { ?>
     <dd><a href="<?php print $terms[$i]['url']; ?>"><?php print t(htmlentities($terms[$i]['display'], ENT_COMPAT, 'UTF-8')); ?></a> (<?php print $terms[$i]['count']; ?>)</dd>
 <?php   } //For loop ?>
-    <dd class="more-facets-<?php print $j; ?>"><a href="#More Options" onclick="$('.more-facets-<?php print $j; ?>').toggle(); return false;"><?php print t('more...')?></a></dd>
+    <dd class="more-facets-<?php print $j; ?>"><a href="#More Options" onclick="jQuery('.more-facets-<?php print $j; ?>').toggle(); return false;"><?php print t('more...')?></a></dd>
   </dl>
   <dl class="more-facets-<?php print $j; ?> js-hide">
 <?php   for (; $i < count($terms); ++$i) { ?>
     <dd><a href="<?php print $terms[$i]['url']; ?>"><?php print t(htmlentities($terms[$i]['display'], ENT_COMPAT, 'UTF-8')); ?></a> (<?php print $terms[$i]['count']; ?>)</dd>
 <?php   } //For loop ?>
-    <dd><a href="#Less Options" onclick="$('.more-facets-<?php print $j; ?>').toggle(); return false;"><?php print t('less...')?></a></dd>
+    <dd><a href="#Less Options" onclick="jQuery('.more-facets-<?php print $j; ?>').toggle(); return false;"><?php print t('less...')?></a></dd>
   </dl>
 
 <?php   } //else ?>

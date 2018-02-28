@@ -10,14 +10,9 @@
  *   $data['link'] => the url for the link.
  *   $data['fulltext'] => Does the record claim to be be full text?
  */
+ 
+$data = $variables['data'];
 
-$sakai_linkurl_base = $_SESSION['article_discovery']['linkurl_base'];
-$sakai_linkurl_id = $_SESSION['article_discovery']['linkurl_id'];
-
-$sakai = $sakai_linkurl_id == 'zonecours.hec.ca' && drupal_strlen($sakai_linkurl_base) > 0;
-
-$sakai_url = $sakai_linkurl_base . $data['openurl'];
-$sakai_label = 'Importer dans ZoneCours';
 ?>
 <div class="article-discovery-link">
   <div class="article-discovery-link-inner">
@@ -30,9 +25,16 @@ $sakai_label = 'Importer dans ZoneCours';
       'attributes' => $data['attributes'],
     )
   );
+$sakai_linkurl_base = $_SESSION['article_discovery']['linkurl_base'];
+$sakai_linkurl_id = $_SESSION['article_discovery']['linkurl_id'];
+
+$sakai = $sakai_linkurl_id == 'zonecours.hec.ca' && drupal_strlen($sakai_linkurl_base) > 0;
+
+$sakai_url = $sakai_linkurl_base . $data['openurl'];
+$sakai_label = 'Importer dans ZoneCours';
 ?>
-    <?php if ($sakai): ?>
-	  <div class="article-discovery-sakai-import-link"><?php print l($sakai_label, $sakai_url); ?></div>
-	<?php endif; ?>
+     <?php if ($sakai): ?>
+    <div class="article-discovery-sakai-import-link"><?php print l($sakai_label, $sakai_url); ?></div>
+    <?php endif; ?>
   </div>
 </div>

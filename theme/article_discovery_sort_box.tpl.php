@@ -8,12 +8,14 @@
  *
  */
 
+ $options = $variables['options'];
+ 
  ?>
 <div class="article-discovery-sort-select">
   <?php print t('Sort:'); ?>
  <select onchange="document.location.href=this.options[this.selectedIndex].value">
 <?php foreach ($options as $option) { ?>
-    <option value="<?php print $option['value']; ?>"<?php if ($option['selected']) print ' selected="selected"'; ?>><?php print $option['display']; ?></option>
+    <option value="<?php print check_plain($option['value']); ?>"<?php if ($option['selected']) print ' selected="selected"'; ?>><?php print $option['display']; ?></option>
 <?php } ?>
  </select>
 </div>

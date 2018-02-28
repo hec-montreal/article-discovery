@@ -11,7 +11,7 @@ For more information about Serials Solutions' Summon, see:
 http://www.serialssolutions.com/summon/
 
 To use this module, you will need to (a) have a Summon subscription with
-access to the API, and (b) obtain the PHP 5 Summon API library from Serialis
+access to the API, and (b) obtain the PHP 5 Summon API library from Serials
 Solutions.  (a) Will likely require money on your part.  (b) Is freely
 available code released under the GPL.  Drupal.org discourages mirroring such
 software so it is not included in this release.  The URL for the Summon API

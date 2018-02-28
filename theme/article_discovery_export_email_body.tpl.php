@@ -10,6 +10,9 @@
  *   An array of records.
  *
  */
+$message = $variables['message'];
+$data    = $variables['data'];
+
 ?>
 <?php if (drupal_strlen($message) > 0): ?>
 <?php print $message; ?>

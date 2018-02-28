@@ -7,6 +7,7 @@
  *   The data for the search ('start', 'limit', 'criteria') ...
  *
  */
+$data = $variables['data'];
 
 $have_results = isset($data['start'])
   && drupal_strlen($data['start'])
@@ -15,10 +16,10 @@ $have_results = isset($data['start'])
   && isset($data['count'])
   && drupal_strlen($data['count']);
 
-$variables = $_GET;
+$vars = $_GET;
 foreach (array('op', 'form_build_id', 'form_token', 'form_id', 'q') as $field) {
-  if (isset($variables[$field])) {
-    unset($variables[$field]);
+  if (isset($vars[$field])) {
+    unset($vars[$field]);
   }
 }
 
@@ -51,4 +52,4 @@ $have_criteria = isset($data['criteria'])
   ?>
 </div>
 <?php endif; ?>
-<div><?php print l(t('Refine this search'), 'articles/advanced', array('query' => $variables)); ?></div>
+<div><?php print l(t('Refine this search'), 'articles/advanced', array('query' => $vars)); ?></div>

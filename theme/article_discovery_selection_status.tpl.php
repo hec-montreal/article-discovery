@@ -8,6 +8,8 @@
  *   $data['search']['query']  provides the variables for the query string
  */
 
+$data = $variables['data'];
+
 ?>
 <div class="article-discovery-details-navigation">
 <?php if (

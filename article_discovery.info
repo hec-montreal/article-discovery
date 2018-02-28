@@ -1,5 +1,8 @@
 ; $Id$
 name = Article Discovery
 description = "This module implements a client for Article Discovery engines.  Version 0.0.2 supports Serials Solutions' Summon API."
-core = 6.x
+core = 7.x
 php = 5
+files[] = summon.php
+files[] = Summon.class.php
+configure = admin/config/search/article_discovery

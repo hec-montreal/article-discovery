@@ -8,14 +8,15 @@
  *
  * The output is preferred as MM/DD/YYYY
  */
+$date = $variables['date'];
 
 if (!is_null($date)) {
-
   $output = array();
   if (is_array($date)) {
     sort($date);
     $date = $date[0];
   }
+
 
   // zonecours: Special case, sometimes $date = [YYYY] or cYYYY
   $firstChar = drupal_substr($date, 0, 1);
@@ -30,6 +31,7 @@ if (!is_null($date)) {
   if(preg_match("/\d{4}-\D+/", $date, $prgo)) {
     $date = drupal_substr($date, 0, 4);
   }
+
 
   if (drupal_strlen($date) == 4) {
     $year = $date;

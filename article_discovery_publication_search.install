@@ -43,9 +43,7 @@ function article_discovery_publication_search_schema() {
 }
 
 function article_discovery_publication_search_install() {
-  drupal_install_schema('article_discovery_publication_search');
 }
 
 function article_discovery_publication_search_uninstall() {
-  drupal_uninstall_schema('article_discovery_publication_search');
 }

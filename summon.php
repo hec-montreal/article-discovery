@@ -6,7 +6,7 @@
  *
  */
 
-if (is_null(module_load_include('php', 'article_discovery', 'Summon.class')))  {
+if (module_load_include('php', 'article_discovery', 'Summon.class'))  {
   class SummonClient extends Summon {
     public $version;
     public function __construct($apiId, $apiKey) {
@@ -43,13 +43,16 @@ if (is_null(module_load_include('php', 'article_discovery', 'Summon.class')))  {
       if (!isset($options['s.ho'])) {
         $options['s.ho'] = 'true';
       }
+      elseif ($options['s.ho'] == FALSE || $options['s.ho'] == 'false' || $options['s.ho'] == 'f') {
+        unset($options['s.ho']);
+      }
       if (!isset($options['s.hl'])) {
         $options['s.hl'] = 'false';
       }
       $options['s.debug'] = 'false';
 
       $result = $this->call($options);
-      if (PEAR::isError($result)) {
+      if (@PEAR::isError($result)) {
         PEAR::raiseError($result);
       }
       return $result;
@@ -95,8 +98,8 @@ if (is_null(module_load_include('php', 'article_discovery', 'Summon.class')))  {
       }
 
       // Send Request
-      $result = $this->client->sendRequest($service . '?' . $url);
-      if (!PEAR::isError($result)) {
+      $result = @$this->client->sendRequest($service);
+      if (!@PEAR::isError($result)) {
         return $this->_process($this->client->getResponseBody());
       }
       else {
@@ -134,5 +137,5 @@ else {
     WATCHDOG_ERROR,
     NULL
   );
-  drupal_set_message('Failed to load Summon API library, see: http://api.summon.serialssolutions.com/help/api/code.', 'error', FALSE);
+  drupal_set_message(t('Failed to load Summon API library, see: http://api.summon.serialssolutions.com/help/api/code.'), 'error', FALSE);
 }

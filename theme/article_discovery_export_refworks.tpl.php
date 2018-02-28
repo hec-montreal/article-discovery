@@ -7,7 +7,7 @@
  *   $data is an associative array containing metadata to be re-encoded as RTF
  *
  */
-
+$data = $variables['data'];
 
 $rtmap = array(
   'no-such-entity'                => 'Abstract',
@@ -154,17 +154,25 @@ $fields = array(
 );
 ?>
 <?php if (is_array($data)): ?>
-<?php foreach ($data as $record) {
-        if (isset($record->Author_xml) && count($record->Author_xml)) {
-          $record->Author = array();
-          foreach ($record->Author_xml as $author_object) {
-            $record->Author[] = $author_object->fullname;
-          }
-        }
-?>
-RT <?php print $rtmap[$record->ContentType[0]]; ?>
-
 <?php
+foreach ($data as $record) {
+  if (isset($record->Author_xml) && count($record->Author_xml)) {
+    $record->Author = array();
+    foreach ($record->Author_xml as $author_object) {
+      $record->Author[] = $author_object->fullname;
+    }
+  }
+  $printed_rt = FALSE;
+  foreach ($record->ContentType as $content_type) {
+    if (isset($rtmap[$content_type])) {
+      print "RT {$rtmap[$content_type]}\n";
+      $printed_rt = TRUE;
+      break;
+    }
+  }
+  if (!$printed_rt) {
+    print "RT Generic\n";
+  }
   foreach ($fields as $tag => $summon) {
     if (!is_array($summon)) {
       $summon = array($summon);

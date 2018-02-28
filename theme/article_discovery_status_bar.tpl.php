@@ -8,6 +8,8 @@
  *
  */
 
+$data = $variables['data'];
+ 
 $have_results = isset($data['start'])
   && drupal_strlen($data['start'])
   && isset($data['limit'])

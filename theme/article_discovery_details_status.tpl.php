@@ -7,6 +7,7 @@
  *   An associative array with information about the previous search.
  *
  */
+$data = $variables['data'];
 ?>
 <div class="article-discovery-details-navigation">
 <?php

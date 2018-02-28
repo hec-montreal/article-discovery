@@ -10,7 +10,6 @@
  * Implements hook_uninstall().
  */
 function article_discovery_uninstall() {
-  drupal_uninstall_schema('article_discovery');
 
   //We're maintaining this list by hand.
   $variables = array(
@@ -42,19 +41,19 @@ function article_discovery_uninstall() {
 
 function article_discovery_schema() {
   $schema['article_discovery_export'] = array(
-    'description' => t('The table to store exported articles for a brief period.'),
+    'description' => 'The table to store exported articles for a brief period.',
     'fields' => array(
       'id' => array(
-        'description' => t('The id for exporting a citation list'),
+        'description' => 'The id for exporting a citation list',
         'type' => 'varchar',
         'length' => 32,
       ),
       'created' => array(
-        'description' => t('The timestamp for when the citation list was created'),
+        'description' => 'The timestamp for when the citation list was created',
         'type' => 'int',
       ),
       'aid' => array(
-        'description' => t("Serials Solutions' ID for a resource"),
+        'description' => "Serials Solutions' ID for a resource",
         'type' => 'varchar',
         'length' => 255,
       ),
@@ -64,7 +63,6 @@ function article_discovery_schema() {
 }
 
 function article_discovery_install() {
-  drupal_install_schema('article_discovery');
 }
 
 
@@ -72,19 +70,19 @@ function article_discovery_update_6000(&$sandbox) {
   $ret = array();
   $schema = array(
     'article_discovery_export' => array(
-      'description' =>  t('The table to store exported articles for a brief period.'),
+      'description' =>  'The table to store exported articles for a brief period.',
       'fields' => array(
         'id' => array(
-          'description' => t('The id for exporting a citation list'),
+          'description' => 'The id for exporting a citation list',
           'type' => 'varchar',
           'length' => 32,
         ),
         'created' => array(
-          'description' => t('The timestamp for when the citation list was created'),
+          'description' => 'The timestamp for when the citation list was created',
           'type' => 'int',
         ),
         'aid' => array(
-          'description' => t("Serials Solutions' ID for a resource"),
+          'description' => "Serials Solutions' ID for a resource",
           'type' => 'varchar',
           'length' => 255,
         ),
@@ -92,5 +90,5 @@ function article_discovery_update_6000(&$sandbox) {
     ),
   );
   db_create_table($ret, 'article_discovery_export', $schema['article_discovery_export']);
-  return $ret;
+  return t('Created {article_discovery_export} table.');
 }

@@ -7,7 +7,8 @@
  *   $data is an associative array containing metadata to be re-encoded as RIS
  *
  */
-
+$data = $variables['data'];
+ 
 $rtmap = array(
   'no-such-entity'                => 'ABST',
   'Art'                           => 'ART',

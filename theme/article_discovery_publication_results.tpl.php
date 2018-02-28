@@ -1,4 +1,18 @@
-<?php print $pager; ?>
+<?php 
+/**
+ * @file
+ * Formats the link to the article.  Takes several parameters into account.
+ *
+ * @param $pager
+ * @param $publication
+ */
+
+$pager       = $variables['pager'];
+$publication = $variables['publication'];
+
+
+print $pager; 
+?>
 <div class="publications">
 <?php foreach ($results as $publication) { 
   if (count($publication['issn'])) {

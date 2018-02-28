@@ -20,7 +20,14 @@
  * @param $linkurl_id
  *   The id for the link resolver.
  */
-if(isset($record->ID[0]) && $selected[$record->ID[0]]) {
+ $record   = $variables['record'];
+ $selected = $variables['selected'];
+ $data     = $variables['data'];
+ $linkurl_base = $variables['linkurl_base'];
+ $linkurl_id   = $variables['linkurl_id'];
+ 
+ 
+if(isset($selected[$record->ID[0]]) && $selected[$record->ID[0]]) {
   $checked = ' checked="checked"';
 }
 else {
@@ -35,7 +42,7 @@ else {
 <?php print htmlentities($record->Title[0], ENT_COMPAT, 'UTF-8'); ?></h2>
 <?php print theme(
   'article_discovery_link_box',
-  _article_discovery_link_box_prepare(
+  array('data' => _article_discovery_link_box_prepare(
     array(
       'linkurl_base' => $linkurl_base,
       'linkurl_id'   => $linkurl_id,
@@ -43,14 +50,14 @@ else {
       'fulltext'     => $record->hasFullText,
       'date'         => $record->PublicationDate_xml[0],
       'id'           => $record->ID[0],
-      'url'          => $record->url[0],
-      'URI'          => $record->URI[0],
+      'url'          => (isset($record->url) ? $record->url[0] : NULL),
+      'URI'          => (isset($record->URI) ? $record->URI[0] : NULL),
       'link'         => $record->link,
       'page'         => '-1',
       'position'     => '-1',
       'query'        => $data['query'],
     )
-  )
+  ))
 );  ?>
 <?php if (isset($record->Author_xml) && count($record->Author_xml)):
   foreach ($record->Author_xml as &$a) {
@@ -87,12 +94,12 @@ else {
     $record->ISBN = $record->EISBN;
   }
   if (isset($record->PublicationDate)) {
-    $record->PublicationDate = theme('article_discovery_date', $record->PublicationDate);
+    $record->PublicationDate = theme('article_discovery_date', array('date' => $record->PublicationDate));
   }
   if (count($record->Author) > 1) {
-    $fields['Author'] = array('display' => 'Authors', 'html' => TRUE);
+    //$fields['Author'] = array('display' => 'Authors', 'html' => TRUE);
   }
-  if (count($record->SubjectTerms) > 1) {
+  if (isset($record->SubjectTerms) && count($record->SubjectTerms) > 1) {
     $fields['SubjectTerms'] = array('display' => 'Subjects', 'html' => TRUE);
   }
   if (isset($record->SubjectTerms) && count($record->SubjectTerms)) {

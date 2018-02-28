@@ -10,6 +10,9 @@
  *   Data for the rendering (right now just $data['ezproxy']).
  */
 
+$recommendations = $variables['recommendations'];
+$data = $variables['data'];
+
 ?>
 <?php if (is_array($recommendations) && count($recommendations)): ?>
 <div class="article-discovery-recommendation-list">

@@ -11,10 +11,14 @@
  * @param $state
  *   Some state information for the rendering.
  */
+ 
+ $selected = $variables['selected'];
+ $selected_count = count($selected);
+ $state    = $variables['state'];
 ?>
 <div class="article-discovery-action-bar">
   <div>
-  <span class="article-discovery-action-selected-actions<?php if (count($selected) != 0) print " js-hide"; ?>">
+  <span class="article-discovery-action-selected-actions<?php if ($selected_count != 0) print " js-hide"; ?>">
     <span class="article-discovery-selected-items"><?php print t('Selected items'); ?> (<span class="article-discovery-selected-count"><?php print count($selected); ?></span>):</span>
     <span class="article-discovery-select-list"><?php print t('List'); ?></span> |
     <span><?php print t('Email'); ?></span> |
@@ -24,7 +28,7 @@
 <?php endif; ?>
     <span><?php print t('Clear'); ?></span>
   </span>
-  <span class="article-discovery-action-selected-actions<?php if (count($selected) == 0) print " js-hide"; ?>">
+  <span class="article-discovery-action-selected-actions<?php if ($selected_count == 0) print " js-hide"; ?>">
     <span class="article-discovery-selected-items"><?php print t('Selected items'); ?> (<span class="article-discovery-selected-count"><?php print count($selected); ?></span>):</span>
     <span class="article-discovery-select-list"><a href="selection"><?php print t('List'); ?></a></span> |
     <span id="article-discovery-select-email"><a href="export/email?destination=<?php print htmlentities(rawurlencode(drupal_substr(request_uri(), 1)), ENT_QUOTES, 'UTF-8'); ?>" title="<?php print t('Email selected items'); ?>"><?php print t('Email'); ?></a></span> |

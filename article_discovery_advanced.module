@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Article Discovery Advanced module
@@ -29,11 +28,14 @@ function article_discovery_advanced_theme_registry_alter(&$vars) {
 }
 
 /**
- * Implements hook_perm().
+ * Implements hook_permission().
  */
-function article_discovery_advanced_perm() {
+function article_discovery_advanced_permission() {
   return array(
-    'advanced search article discovery',     // Who can conduct searches?
+    'advanced search article discovery' => array(
+      'title' => t('Advanced Article Discovery Search'),
+      'description' => t('Who can conduct advanced searches?')
+    ),
   );
 }
 
@@ -130,7 +132,7 @@ function article_discovery_advanced_display() {
     unset($variables['submit']);
     $qs = html_entity_decode(http_build_query($variables));
 
-    return drupal_goto('articles/search', $qs);
+    return drupal_goto('articles/search', array('query' => $variables));
   }
   else {
     require_once('summon.php');
@@ -168,17 +170,18 @@ function article_discovery_advanced_display() {
         $data['query'][$var] = $variables[$var];
       }
     }
+
     return theme(
       'article_discovery_results',
-      array(
+      array('data' => array(
         'state' => 'advanced',
-        'status' => drupal_get_form('article_discovery_advanced_search_box', $data, array_merge($_GET, $_POST)),
-      )
+        'status' => drupal_render(drupal_get_form('article_discovery_advanced_search_box', $data, array_merge($_GET, $_POST))),
+      ))
     );
   }
 }
 
-function article_discovery_advanced_search_box(&$form, $data, $defaults) {
+function article_discovery_advanced_search_box($form, &$form_state, $data, $defaults) {
   $types = array(
     'All' => 'Tous les champs',
     'Title' => 'Titre',
@@ -186,10 +189,10 @@ function article_discovery_advanced_search_box(&$form, $data, $defaults) {
     'PublicationTitle' => 'Titre de la publication',
     'SubjectTerms' => 'Sujet',
     'Series' => 'Series',
-    'PublicationYear' => 'Année de publication',
+    'PublicationYear' => 'AnnÃ©e de publication',
     'ISSN' => 'ISSN',
     'ISBN' => 'ISBN',
-  );
+      );
   $bools = array('AND' => 'ET', 'OR' => 'OU');
   $languages = array( 'All' => 'Tous');
   foreach ($data['Language'] as $language) {
@@ -199,6 +202,15 @@ function article_discovery_advanced_search_box(&$form, $data, $defaults) {
   foreach ($data['ContentType'] as $format) {
     $formats[$format] = $format;
   }
+  //Flatten the parsed kw array if it needs it.  This only does the top two levels.   
+  if (isset($data['query']['keywords']['kw'])) {
+    $default_kw = article_discovery_advanced_flatten($data['query']['keywords']['kw']);
+  
+  }
+  else {
+    $default_kw = '';
+  }
+
   $form = array(
     '#method' => preg_replace('/\?.*/', '', request_uri()),
     'scholarly' => array(
@@ -249,7 +261,7 @@ function article_discovery_advanced_search_box(&$form, $data, $defaults) {
           '#suffix' => '</td>',
           '#type' => 'textfield',
           '#size' => '50',
-          '#default_value' => isset($data['query']['keywords']['kw']) ? (!empty($data['query']['keywords']['kw']) ? implode(' ', $data['query']['keywords']['kw']) : '') : '',
+          '#default_value' => $default_kw,
         ),
       ),
       'Author' => array(
@@ -454,12 +466,13 @@ function article_discovery_advanced_search_box(&$form, $data, $defaults) {
       ),
     ),
     'select_table' => array(
-      '#prefix' => '<table><tr><td>Année de publication:</td><td>Langue:</td><td>Type:</td></tr>',
+      '#prefix' => '<table><tr><td>AnnÃ©e de publication:</td><td>Langue:</td><td>Type:</td></tr>',
       'row_2' => array(
+        '#prefix' => '<tr>',
         'published' => array(
           '#type' => 'select',
-          '#options' => array('before' => 'Avant', 'after' => 'Après', 'between' => 'Entre', 'in' => 'Dans'),
-          '#prefix' => '<td>',
+          '#options' => array('before' => 'Avant', 'after' => 'AprÃ¨s', 'between' => 'Entre', 'in' => 'Dans'),
+        '#prefix' => '<td>',
         ),
         'published_start' => array(
           '#type' => 'textfield',
@@ -470,7 +483,7 @@ function article_discovery_advanced_search_box(&$form, $data, $defaults) {
           '#type' => 'textfield',
           '#size' => 4,
           '#suffix' => '</td>',
-          '#attributes' => array('class' => 'article-published-between', 'style' => 'visibility: hidden;'),
+          '#attributes' => array('class' => array('article-published-between'), 'style' => 'visibility: hidden;'),
         ),
         'Language' => array(
           '#type' => 'select',
@@ -488,6 +501,7 @@ function article_discovery_advanced_search_box(&$form, $data, $defaults) {
           '#prefix' => '<td>',
           '#suffix' => '</td>',
         ),
+        '#suffix' => '</tr>',
       ),
       '#suffix' => '</table>',
     ),
@@ -497,13 +511,6 @@ function article_discovery_advanced_search_box(&$form, $data, $defaults) {
     ),
   );
 
-  if (isset($data['query']) && isset($data['query']['keywords'])) {
-    foreach ($data['query']['keywords'] as $k => $v) {
-      if (count($v) && is_array($v[0])) {
-        $form['textfield_table'][$k]['lookfor[]']['#default_value'] = implode('', $v[0]);
-      }
-    }
-  }
   if (isset($data['query']) && isset($data['query']['conjunctions'])) {
     foreach ($data['query']['conjunctions'] as $k => $v) {
       if (drupal_strlen($v)) {
@@ -549,6 +556,18 @@ function article_discovery_advanced_search_box(&$form, $data, $defaults) {
     }
   }
   return $form;
+}
+
+function article_discovery_advanced_flatten($thing) {
+  if(is_array($thing)) {
+    return '(' . implode('', array_map('article_discovery_advanced_flatten', $thing)) .')';
+  }
+  elseif (is_object($thing)) {
+    return '';
+  }
+  else {
+    return $thing;
+  }  
 }
 
 function article_discovery_advanced_tokenize_kw_string($str) {

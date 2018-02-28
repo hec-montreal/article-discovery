@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * A module providing an interface for searching an article discovery engine
@@ -181,15 +180,22 @@ function article_discovery_settings() {
 }
 
 /**
- * Implements hook_perm().
+ * Implements hook_permission().
  */
-function article_discovery_perm() {
+function article_discovery_permission() {
   return array(
-    'administer article discovery', // Who can access the administrative functions?
-    'search article discovery',     // Who can conduct searches?
-    'import article discovery'      // Sometimes we want to export lists of articles to third parties, if
-                                    // we want granular control over who can conduct searches
-                                    // we may not want to have the same control over who can import data.
+    'administer article discovery' => array(
+      'title' => t('Administer Article Discovery Module'),
+      'description' => t('Who can access the administrative functions?')
+    ),
+    'search article discovery' => array(
+      'title' => t('Search Article Discovery'),
+      'description' => t('Who can conduct searches?')
+    ),     
+    'export article discovery data' => array(
+      'title' => t('Export article discovery data'),
+      'description' => t('Sometimes we want to export lists of articles to third parties, if we want granular control over who can conduct searches we may not want to have the same control over who can import data.')
+    )
   );
 }
 
@@ -248,7 +254,7 @@ function article_discovery_menu() {
   $items['articles/export/email'] = array(
     'title'            => 'Export Selected Articles Via Email',
     'description'      => 'Export Selected Articles Via Email',
-    'access arguments' => array('search article discovery'),
+    'access arguments' => array('export article discovery data'),
     'page callback'    => 'drupal_get_form',
     'page arguments'   => array('article_discovery_export_email'),
     'type'             => MENU_CALLBACK,
@@ -256,14 +262,14 @@ function article_discovery_menu() {
   $items['articles/export/refworks'] = array(
     'title'            => 'Export Selected Articles to Refworks',
     'description'      => 'Export Selected Articles to Refworks',
-    'access arguments' => array('search article discovery'),
+    'access arguments' => array('export article discovery data'),
     'page callback'    => 'article_discovery_export_refworks_redirect',
     'type'             => MENU_CALLBACK,
   );
   $items['articles/export/refworks/%article_discovery_tail'] = array(
     'title'            => 'Export Selected Articles to Refworks',
     'description'      => 'Export Selected Articles to Refworks',
-    'access arguments' => array('import article discovery'),
+    'access arguments' => array('export article discovery data'),
     'load arguments'   => array('%map', '%index'),
     'page callback'    => 'article_discovery_export_refworks',
     'page arguments'   => array(3),
@@ -272,20 +278,20 @@ function article_discovery_menu() {
   $items['articles/export/ris'] = array(
     'title'            => 'Export Selected Articles as RIS',
     'description'      => 'Export Selected Articles as RIS',
-    'access arguments' => array('search article discovery'),
+    'access arguments' => array('export article discovery data'),
     'page callback'    => 'article_discovery_export_ris_redirect',
     'type'             => MENU_CALLBACK,
   );
   $items['articles/export/ris/%article_discovery_tail'] = array(
     'title'            => 'Export Selected Articles as RIS',
     'description'      => 'Export Selected Articles as RIS',
-    'access arguments' => array('search article discovery'),
+    'access arguments' => array('export article discovery data'),
     'load arguments'   => array('%map', '%index'),
     'page callback'    => 'article_discovery_export_ris',
     'page arguments'   => array(3),
     'type'             => MENU_CALLBACK,
   );
-  $items['admin/settings/article_discovery'] = array(
+  $items['admin/config/search/article_discovery'] = array(
     'title'            => 'Article Discovery',
     'description'      => 'Configure your Article Discovery settings.',
     'access arguments' => array('administer article discovery'),
@@ -321,7 +327,7 @@ function article_discovery_get_all_documents($ids) {
   //Summon's query parser only returns one record for queries on ID:
   foreach ($ids as $id) {
     if (drupal_strlen($id) > 2) {
-      $tmp = article_discovery_submit_query($s, 'ID:'. $id);
+      $tmp = article_discovery_submit_query($s, 'ID:' . $id);
       if (count($tmp->documents)) {
         $docs[] = $tmp->documents[0];
       }
@@ -335,9 +341,14 @@ function article_discovery_get_all_documents($ids) {
  *  If we've selected items, redirect the browser to the RIS export for them.
  */
 function article_discovery_export_ris_redirect() {
-  $id = article_discovery_put_export_ids(array_keys($_SESSION['article_discovery']['selected']));
+  if (isset($_SESSION) && isset($_SESSION['article_discovery']) && isset($_SESSION['article_discovery']['selected'])) {
+    $id = article_discovery_put_export_ids(array_keys($_SESSION['article_discovery']['selected']));
+  }
+  else {
+    $id = FALSE;
+  }
   if ($id !== FALSE) {
-    drupal_goto('articles/export/ris/'. $id );
+    drupal_goto('articles/export/ris/' . $id );
   }
   else {
     return drupal_not_found();
@@ -348,10 +359,10 @@ function article_discovery_export_ris_redirect() {
  *  A function to retrieve ids to be exported to a 3rd party, e.g. RefWorks.
  */
 function article_discovery_get_export_ids($export_id) {
-  $res = db_query("SELECT aid FROM {article_discovery_export} WHERE id = '%s'", $export_id);
+  $res = db_query("SELECT aid FROM {article_discovery_export} WHERE id = :aid", array(':aid' => $export_id));
   $ret = array();
-  while ($tmp = db_result($res)) {
-    $ret[] = $tmp;
+  while ($tmp = $res->fetchObject()) {
+    $ret[] = $tmp->aid;
   }
   return $ret;
 }
@@ -362,10 +373,12 @@ function article_discovery_get_export_ids($export_id) {
 function article_discovery_put_export_ids($article_ids) {
   if (count($article_ids)) {
     $export_id = md5(implode(',', $article_ids));
-    db_query("DELETE FROM {article_discovery_export} WHERE id = '%s'", $export_id);
+    db_delete('article_discovery_export')->condition('id', $export_id)->execute();
+    $insert = db_insert('article_discovery_export')->fields(array('id', 'created', 'aid'));
     foreach ($article_ids as $article_id) {
-      db_query("INSERT INTO {article_discovery_export} SET id='%s', created = %d, aid = '%s'", $export_id, time(), $article_id);
+      $insert->values(array('id' => $export_id, 'created' => REQUEST_TIME, 'aid' => $article_id));
     }
+    $insert->execute();
   }
   else {
     $export_id = FALSE;
@@ -377,34 +390,42 @@ function article_discovery_put_export_ids($article_ids) {
  * If we've selected items, redirect the browser to the Refworks page to import their articles.
  */
 function article_discovery_export_refworks_redirect() {
-  $id = article_discovery_put_export_ids(array_keys($_SESSION['article_discovery']['selected']));
+  if (isset($_SESSION) && isset($_SESSION['article_discovery']) && isset($_SESSION['article_discovery']['selected'])) {
+    $id = article_discovery_put_export_ids(array_keys($_SESSION['article_discovery']['selected']));
+  } else {
+    $id = FALSE;
+  }
   if ($id !== FALSE) {
-    $refworks = sprintf('http://www.refworks.com/express/expressimport.asp?vendor=%s&encoding=%s&filter=%s&database=%s&url=%s',
+    $url = url('articles/export/refworks/' . $id, array('absolute' => TRUE));
+    drupal_alter('article_discovery_refworks_url', $url);
+    $refworks = sprintf(
+      'http://www.refworks.com/express/expressimport.asp?vendor=%s&encoding=%s&filter=%s&database=%s&url=%s',
       variable_get('article_discovery_refworks_vendor', ''),
       variable_get('article_discovery_refworks_encoding', ''),
       variable_get('article_discovery_refworks_filter', ''),
       variable_get('article_discovery_refworks_database', ''),
-      url('articles/export/refworks/'. $id, array('absolute' => TRUE))
+      $url
     );
     if (isset($_SESSION['article_discovery']['disable_ezproxy'])) {
-      drupal_set_header('Location: '. $refworks);
+      drupal_add_http_header('Location', $refworks);
     }
     elseif (isset($_SESSION['article_discovery']['ezproxy'])) {
-      drupal_set_header('Location: '. $_SESSION['article_discovery']['ezproxy'] .'?qurl='. rawurlencode($refworks));
+      drupal_add_http_header('Location', $_SESSION['article_discovery']['ezproxy'] . '?qurl=' . rawurlencode($refworks));
     }
     elseif (variable_get('article_discovery_allow_custom_ezproxy', FALSE) && isset($_GET['ezproxy']) && drupal_strlen($_GET['ezproxy'])) {
-      drupal_set_header('Location: '. $_GET['ezproxy'] .'?qurl='. rawurlencode($refworks));
+      drupal_add_http_header('Location', $_GET['ezproxy'] . '?qurl=' . rawurlencode($refworks));
     }
     elseif ($tmp = variable_get('article_discovery_ezproxy_link', '')) {
-      drupal_set_header('Location: '. $tmp .'?qurl='. rawurlencode($refworks));
+      drupal_add_http_header('Location', $tmp . '?qurl=' . rawurlencode($refworks));
     }
     else {
-      drupal_set_header('Location: '. $refworks);
+      drupal_add_http_header('Location', $refworks);
     }
   }
   else {
     return drupal_not_found();
   }
+  return FALSE;
 }
 
 /**
@@ -424,9 +445,6 @@ function article_discovery_session_variables() {
         if ($GLOBALS[$v]['disable_ezproxy']) {
           $_SESSION['article_discovery']['disable_ezproxy'] = TRUE;
         }
-        else {
-          unset($_SESSION['article_discovery']['disable_ezproxy']);
-        }
         unset($GLOBALS[$v]['disable_ezproxy']);
       }
     }
@@ -434,9 +452,6 @@ function article_discovery_session_variables() {
       if (isset($GLOBALS[$v]['ezproxy'])) {
         if (drupal_strlen($GLOBALS[$v]['ezproxy']) > 0) {
           $_SESSION['article_discovery']['ezproxy'] = $GLOBALS[$v]['ezproxy'];
-        }
-        else {
-          unset($_SESSION['article_discovery']['ezproxy']);
         }
         unset($GLOBALS[$v]['article_discovery']['ezproxy']);
       }
@@ -446,11 +461,17 @@ function article_discovery_session_variables() {
         if (drupal_strlen($GLOBALS[$v]['linkurl_base']) > 1) {
           $_SESSION['article_discovery']['linkurl_base'] = $GLOBALS[$v]['linkurl_base'];
         }
+        else {
+          unset($_SESSION['article_discovery']['linkurl_base']);
+        }
         unset($GLOBALS[$v]['linkurl_base']);
       }
       if (isset($GLOBALS[$v]['linkurl_id'])) {
         if (drupal_strlen($GLOBALS[$v]['linkurl_id']) > 0) {
           $_SESSION['article_discovery']['linkurl_id'] = $GLOBALS[$v]['linkurl_id'];
+        }
+        else {
+          unset($_SESSION['article_discovery']['linkurl_id']);
         }
         unset($GLOBALS[$v]['linkurl_id']);
       }
@@ -463,15 +484,15 @@ function article_discovery_session_variables() {
  * The format is specified in the 'article_discovery_export_ris' theme.
  */
 function article_discovery_export_ris($export_id) {
-  drupal_set_header('Content-Type: application/x-research-info-systems; charset=utf-8');
-  drupal_set_header('Content-Disposition: attachment; filename="selected.ris"');
+  drupal_add_http_header('Content-Type', 'application/x-research-info-systems; charset=utf-8');
+  drupal_add_http_header('Content-Disposition', 'attachment; filename="selected.ris"');
 
   $ids = article_discovery_get_export_ids($export_id);
   foreach ($ids as &$id) {
     $id = article_discovery_escape_lucene_literal($id);
   }
   $data = article_discovery_get_all_documents($ids);
-  print theme('article_discovery_export_ris', $data);
+  print theme('article_discovery_export_ris', array('data' => $data));
   exit;
 }
 
@@ -480,13 +501,13 @@ function article_discovery_export_ris($export_id) {
  * The format is specified in the 'article_discovery_export_refworks' theme.
  */
 function article_discovery_export_refworks($export_id) {
-  drupal_set_header('Content-Type: text/plain; charset=utf-8');
+  drupal_add_http_header('Content-Type', 'text/plain; charset=utf-8');
   $ids = article_discovery_get_export_ids($export_id);
   foreach ($ids as &$id) {
     $id = article_discovery_escape_lucene_literal($id);
   }
   $data = article_discovery_get_all_documents($ids);
-  print theme('article_discovery_export_refworks', $data);
+  print theme('article_discovery_export_refworks', array('data' => $data));
   exit;
 }
 
@@ -579,7 +600,10 @@ function article_discovery_export_email_submit($form, &$form_state) {
   }
 
   $data = article_discovery_get_all_documents($tmp);
-  $body = theme('article_discovery_export_email_body', $message, $data);
+  $body = theme(
+    'article_discovery_export_email_body',
+    array('message' => $message, 'data' => $data)
+  );
 
   $message = array(
     'to' => $to,
@@ -614,17 +638,17 @@ function article_discovery_theme() {
     'article_discovery_date_range' => array(
       'path'      => $path,
       'template'  => 'article_discovery_date_range',
-      'arguments' => array( 'range' => NULL),
+      'variables' => array('range' => NULL),
     ),
     'article_discovery_date' => array(
       'path'      => $path,
       'template'  => 'article_discovery_date',
-      'arguments' => array( 'date' => NULL),
+      'variables' => array('date' => NULL),
     ),
     'article_discovery_export_email_body' => array(
       'path'      => $path,
       'template'  => 'article_discovery_export_email_body',
-      'arguments' => array(
+      'variables' => array(
         'message' => '',
         'data' => NULL,
       ),
@@ -632,69 +656,69 @@ function article_discovery_theme() {
     'article_discovery_export_ris' => array(
       'path'      => $path,
       'template'  => 'article_discovery_export_ris',
-      'arguments' => array(
+      'variables' => array(
         'data' => NULL,
       ),
     ),
     'article_discovery_export_refworks' => array(
       'path'      => $path,
       'template'  => 'article_discovery_export_refworks',
-      'arguments' => array(
+      'variables' => array(
         'data' => NULL,
       ),
     ),
-	/*
+    /*
     'article_discovery_actions' => array(
       'path'      => $path,
       'template'  => 'article_discovery_actions',
-      'arguments' => array(
-        'state'    => array(),
-        'selected' => array(),
+      'variables' => array(
+        'state'    => NULL, //array(),
+        'selected' => NULL, //array(),
       ),
     ),
-	*/
+    */
     'article_discovery_status_bar' => array(
       'path'      => $path,
       'template'  => 'article_discovery_status_bar',
-      'arguments' => array(
+      'variables' => array(
         'data' => NULL,
       ),
     ),
-	/*
+      /*
     'article_discovery_recommend_box' => array(
       'path'      => $path,
       'template'  => 'article_discovery_recommend_box',
-      'arguments' => array(
+      'variables' => array(
         'recommendations' => NULL,
-        'data' => array( 'ezproxy' => ''),
+        'data' => NULL, //array( 'ezproxy' => ''),
       ),
     ),
-	*/
+    */
     'article_discovery_sort_box' => array(
       'path'      => $path,
       'template'  => 'article_discovery_sort_box',
-      'arguments' => array(
+      'variables' => array(
         'options' => NULL,
       ),
     ),
     'article_discovery_selection_status' => array(
       'path'      => $path,
       'template'  => 'article_discovery_selection_status',
-      'arguments' => array(
+      'variables' => array(
         'data' => NULL,
       ),
     ),
     'article_discovery_details_status' => array(
       'path'      => $path,
       'template'  => 'article_discovery_details_status',
-      'arguments' => array(
+      'variables' => array(
         'data' => NULL,
       ),
     ),
     'article_discovery_details' => array(
       'path'      => $path,
       'template'  => 'article_discovery_details',
-      'arguments' => array(
+      'variables' => array(
         'record'       => NULL,
         'selected'     => NULL,
         'data'         => NULL,
@@ -706,9 +730,9 @@ function article_discovery_theme() {
     'article_discovery_record' => array(
       'path'      => $path,
       'template'  => 'article_discovery_record',
-      'arguments' => array(
+      'variables' => array(
         'record'   => NULL,
-        'data'     => array('position' => 0),
+        'data'     => NULL, //array('position' => 0),
         'selected' => NULL,
         'limits'   => NULL,
         'link'     => '',
@@ -717,17 +741,17 @@ function article_discovery_theme() {
     'article_discovery_advanced_box' => array(
       'path'      => $path,
       'template'  => 'article_discovery_advanced_box',
-      'arguments' => array( 'data' => NULL, 'state' => NULL ),
+      'variables' => array( 'data' => NULL, 'state' => NULL ),
     ),
     'article_discovery_results' => array(
       'path'      => $path,
       'template'  => 'article_discovery_results',
-      'arguments' => array( 'data' => NULL, 'limits' => NULL ),
+      'variables' => array( 'data' => NULL, 'limits' => NULL ),
     ),
     'article_discovery_facets' => array(
       'path'      => $path,
       'template'  => 'article_discovery_facets',
-      'arguments' => array(
+      'variables' => array(
         'facets_applied'   => NULL,
         'facets_available' => NULL,
         'refine' => NULL,
@@ -737,12 +761,12 @@ function article_discovery_theme() {
     'article_discovery_link_box' => array(
       'path'      => $path,
       'template'  => 'article_discovery_link_box',
-      'arguments' => array( 'data' => NULL, 'limits' => NULL ),
+      'variables' => array( 'data' => NULL, 'limits' => NULL ),
     ),
     'article_discovery_header' => array(
       'path'      => $path,
       'template'  => 'article_discovery_header',
-      'arguments' => array( 'data' => NULL, 'limits' => NULL ),
+      'variables' => array( 'data' => NULL, 'limits' => NULL ),
     ),
   );
 }
@@ -771,6 +795,20 @@ function article_discovery_parse_query($source) {
     }
   }
   return $attrs;
+}
+
+/**
+ * Fetch the ids that have been selected.
+ */
+function article_discovery_get_selected_ids() {
+  if (is_array($_SESSION) && isset($_SESSION['article_discovery']) &&
+      is_array($_SESSION['article_discovery']) && isset($_SESSION['article_discovery']['selected'])) {
+    $ret = array_keys($_SESSION['article_discovery']['selected']);
+  }
+  else {
+    $ret = array();
+  }
+  return $ret;
 }
 
 /**
@@ -811,7 +849,8 @@ function article_discovery_select($commands = array()) {
         break;
     }
   }
-  drupal_json(array('delta' => $delta));
+  drupal_json_output(array('delta' => $delta));
+  exit;
 }
 
 /**
@@ -825,7 +864,7 @@ function article_discovery_escape_lucene_keywords($str) {
  * around the string and escapes slashes and double quotes,
  */
 function article_discovery_escape_lucene_literal($str) {
-  return ( '"'. addcslashes($str, '\\"') .'"');
+  return ( '"' . addcslashes($str, '\\"') . '"');
 }
 
 /**
@@ -842,7 +881,7 @@ function _article_discovery_ezproxy() {
   }
 
   //If it's been disabled.
-  if ($_SESSION['article_discovery']['disable_ezproxy']) {
+  if (isset($_SESSION['article_discovery']['disable_ezproxy']) && $_SESSION['article_discovery']['disable_ezproxy']) {
     $ezproxy = '';
   }
   else {
@@ -855,6 +894,186 @@ function _article_discovery_ezproxy() {
     }
   }
   return $ezproxy;
+}
+
+function article_discovery_openurl($url = NULL) {
+  // The standard php input parser for $_GET and $_POST has problems with openurls.
+  // (a) it can't handle multiple values without brackets on the variable name.
+  // (b) it can't handle periods in variable names.
+  // So we're just going to look for a bunch of things to throw at our AD engine and see what sticks.
+  // Alternatively we could just redirect to our openurl resolver.
+  if ($url == NULL) {
+    $url = array_map(function($a) { return explode('=', $a, 2); }, explode('&', $_SERVER['QUERY_STRING']));
+  }
+
+
+  $criteria = array();
+  // Genre is pretty important for interpeting a few of the variables. So we want to pick those up first.
+  foreach ($url as $kv) {
+    if ($kv[0] == 'rft.genre') {
+      $genre = urldecode($kv[1]);
+    }
+  }
+  foreach ($url as $kv) {
+    $key = urldecode($kv[0]);
+    $value = urldecode($kv[1]);
+    switch ($key) {
+      case 'rft.date':
+        $criteria['date'][]   = 'Date:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft.au':
+        $criteria['author'][] = 'Author:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft.epage':
+        $criteria['end'][]    = 'EndPage:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft.spage':
+        $criteria['start'][]  = 'StartPage:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft.isbn':
+        $criteria['isbn'][]   = 'ISBN:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft.issn':
+        $criteria['issn'][]   = 'ISSN:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft.issue':
+        $criteria['issue'][]  = 'Issue:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft.volume':
+        $criteria['volume'][] = 'Volume:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft.atitle':
+        $criteria['title'][]  = 'Title:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft_id':
+        if (substr($value, 0, 9) == 'info:doi/') {
+          $criteria['id'][]   = 'DOI:(' . article_discovery_escape_lucene_literal(substr($value, 9)) . ')';
+        } elseif (substr($value, 0, 10) == 'info:pmid/') {
+          $criteria['id'][]   = 'PMID:(' . article_discovery_escape_lucene_literal(substr($value, 10)) . ')';
+        }
+        break;
+      case 'rft.title':
+        if ($genre == 'book' || $genre == 'dissertation') {
+          $criteria['title'][]    = 'Title:(' . article_discovery_escape_lucene_literal($value) . ')';
+        }
+        else {
+          $criteria['pubtitle'][] = 'PublicationTitle:(' . article_discovery_escape_lucene_literal($value) . ')';
+        }
+        break;
+      case 'rft.jtitle':
+        $criteria['pubtitle'][]   = 'PublicationTitle:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft.pub':
+        $criteria['pub'][]        = 'Publisher:(' . article_discovery_escape_lucene_literal($value) . ')';
+        break;
+      case 'rft.genre':
+        break;
+      case 'rft_val_fmt':
+      case 'rfr_id':
+      case 'ctx_enc':
+      case 'ctx_ver':
+      default:
+    }
+  }
+
+  $s = new SummonClient(
+    variable_get('article_discovery_username', ''),
+    variable_get('article_discovery_password', '')
+  );
+  if (isset($_SESSION['article_discovery']) && isset($_SESSION['article_discovery']['session_id'])) {
+    $s->session($_SESSION['article_discovery']['session_id']);
+  }
+
+  $query = array();
+
+  //This is kinda just trial and error for a sample.  It may not work great overall.  
+  $pass = array(
+    'id'        => array('id', 'isbn'),
+    'standard'  => array('title', 'author', 'pubtitle', 'volume', 'issue', 'start', 'end', 'issn', 'isbn', 'date'),
+    'reduced'   => array('title', 'author', 'pubtitle', 'volume', 'issue', 'date'),
+    'sparse'    => array('title', 'author', 'pubtitle', 'volume', 'issue'),
+    'bare'      => array('title',           'pubtitle', 'volume', 'issue'),
+    'isbn'      => array('isbn'),
+    'issn'      => array('issn'),
+    'failed'    => array(),
+  );
+
+  //Prepopulate the data to render at the end.
+  $data  = array('error' => "Couldn't find the record you were looking for.");
+  $state = NULL;
+
+
+  $res = NULL;
+  foreach ($pass as $pass_id => $keys) {
+    $query = array();
+    foreach ($keys as $key) {
+      if (isset($criteria[$key])) {
+        $query = array_merge($query, $criteria[$key]);
+      }
+    }
+    if (empty($query)) {
+      //Nothing to do for this pass.
+      continue;
+    }
+    $res = article_discovery_submit_query($s, $query, array(), array(), 1, 1, NULL, array('s.ho' => 'false'));
+
+    // TODO: Refactor this code to share commonalities with the detail display.
+    if (!empty($res) && is_array($res->documents) && count($res->documents) > 0) {
+      if (isset($res->documents[0]->availabilityToken)) {
+        $res->documents[0]->availability = $s->availability($res->documents[0]->availabilityToken);
+      }
+      $details_args = array(
+        'record'   => $res->documents[0],
+        'selected' => (isset($_SESSION['article_discovery']['selected']) ? $_SESSION['article_discovery']['selected'] : NULL),
+        'data'     => $search,
+        'linkurl_base' => (isset($_SESSION['article_discovery']['linkurl_base']) ? $_SESSION['article_discovery']['linkurl_base']: NULL),
+        'linkurl_id'   => (isset($_SESSION['article_discovery']['linkurl_id'])   ? $_SESSION['article_discovery']['linkurl_id']  : NULL),
+        'fields'   => array(
+          'Availability'     => array('display' => 'Availability'),
+          'Author'           => array('display' => 'Author', 'html' => TRUE),
+          'ContentType'      => array('display' => 'Format'),
+          'PublicationTitle' => array('display' => 'Publication Title'),
+          'Publisher'        => array('display' => 'Publisher'),
+          'SubjectTerms'     => array('display' => 'Subject', 'html' => TRUE),
+          'Language'         => array('display' => 'Language'),
+          'ISSN'             => array('display' => 'ISSN'),
+          'ISBN'             => array('display' => 'ISBN'),
+          'PublicationDate'  => array('display' => 'Date'),
+          'Volume'           => array('display' => 'Volume'),
+          'Issue'            => array('display' => 'Issue'),
+          'DOI'              => array('display' => 'DOI'),
+        )
+      );
+      $details = theme(
+        'article_discovery_details',
+        $details_args
+      );
+      $data = array(
+      /*  'actions' => theme(
+          'article_discovery_actions',
+          array(
+            'state' => array(
+              'details' => TRUE,
+              'refworks' => drupal_strlen(variable_get('article_discovery_refworks_vendor', '')) > 0,
+              'linkurl_id' => isset($_SESSION['article_discovery']['linkurl_id']) ? $_SESSION['article_discovery']['linkurl_id'] : NULL,
+              'linkurl_base' => isset($_SESSION['article_discovery']['linkurl_base']) ? $_SESSION['article_discovery']['linkurl_base'] : NULL,
+            ),
+            'selected' => array(isset($_SESSION['article_discovery']['selected']) ? $_SESSION['article_discovery']['selected'] : NULL)
+          )
+        ),*/
+        'search-box' => '',
+        'records'    => array($details),
+        'facets'     => '',
+        'status'     => theme('article_discovery_details_status', array('data' => array('search' => $search, 'id' => $id))),
+        'pager'      => '',
+        'sort'       => '',
+        'query'      => (isset($search['query']) ? $search['query'] : NULL),
+        'error'      => (isset($res->errors) ? $res->errors : NULL),
+      );
+      break;
+    }
+  }
+  return theme('article_discovery_results', array('data' => $data, 'state' => (isset($state) ? $state : NULL)));
 }
 
 /*
@@ -884,20 +1103,19 @@ function article_discovery_details($ids=array()) {
     $s->session($_SESSION['article_discovery']['session_id']);
   }
 
-  $res = article_discovery_submit_query($s, 'ID:'. $id, array(), array(), 1, 1, NULL, array('s.ho', 'false'));
+  $res = article_discovery_submit_query($s, 'ID:' . $id, array(), array(), 1, 1, NULL, array('s.ho' => 'false'));
 
   if (is_array($res->documents) && count($res->documents) == 1) {
     if (isset($res->documents[0]->availabilityToken)) {
       $res->documents[0]->availability = $s->availability($res->documents[0]->availabilityToken);
     }
-    $details = theme(
-      'article_discovery_details',
-      $res->documents[0],
-      $_SESSION['article_discovery']['selected'],
-      $search,
-      (isset($_SESSION['article_discovery']['linkurl_base'])?$_SESSION['article_discovery']['linkurl_base']:NULL),
-      (isset($_SESSION['article_discovery']['linkurl_id'])?$_SESSION['article_discovery']['linkurl_id']:NULL),
-      array(
+    $details_args = array(
+      'record'   => $res->documents[0],
+      'selected' => (isset($_SESSION['article_discovery']['selected']) ? $_SESSION['article_discovery']['selected'] : NULL),
+      'data'     => $search,
+      'linkurl_base' => (isset($_SESSION['article_discovery']['linkurl_base']) ? $_SESSION['article_discovery']['linkurl_base']: NULL),
+      'linkurl_id'   => (isset($_SESSION['article_discovery']['linkurl_id'])   ? $_SESSION['article_discovery']['linkurl_id']  : NULL),
+      'fields'   => array(
         'Availability'     => array('display' => 'Availability'),
         'Author'           => array('display' => 'Author', 'html' => TRUE),
         'ContentType'      => array('display' => 'Format'),
@@ -913,32 +1131,42 @@ function article_discovery_details($ids=array()) {
         'DOI'              => array('display' => 'DOI'),
       )
     );
+    $details = theme(
+      'article_discovery_details',
+      $details_args
+    );
     $data = array(
-	/*
       'actions' => theme(
         'article_discovery_actions',
         array(
-          'details' => TRUE,
-          'refworks' => drupal_strlen(variable_get('article_discovery_refworks_vendor', '')) > 0
-        ), //state
-        $_SESSION['article_discovery']['selected'] //selected
+          'state' => array(
+            'details' => TRUE,
+            'refworks' => drupal_strlen(variable_get('article_discovery_refworks_vendor', '')) > 0,
+            'linkurl_id' => isset($_SESSION['article_discovery']['linkurl_id']) ? $_SESSION['article_discovery']['linkurl_id'] : NULL,
+            'linkurl_base' => isset($_SESSION['article_discovery']['linkurl_base']) ? $_SESSION['article_discovery']['linkurl_base'] : NULL,
+          ), 
+          'selected' => isset($_SESSION['article_discovery']['selected']) ? $_SESSION['article_discovery']['selected'] : NULL
+        )
       ),
-	  */
       'search-box' => '',
       'records'    => array($details),
       'facets'     => '',
-      'status'     => theme('article_discovery_details_status', array('search' => $search, 'id' => $id)),
+      'status'     => theme('article_discovery_details_status', array('data' => array('search' => $search, 'id' => $id))),
       'pager'      => '',
       'sort'       => '',
-      'query'      => (isset($search['query'])?$search['query']:NULL),
-      'error'      => $res->errors,
+      'query'      => (isset($search['query']) ? $search['query'] : NULL),
+      'error'      => (isset($res->errors) ? $res->errors : NULL),
     );
+  }
+  elseif (isset($_GET['ctx_ver'])) {
+    //Before we give up, try checking the url for openURL parameters.
+    return article_discovery_openurl();
   }
   else {
     $data  = array('error' => "Couldn't find the record you were looking for.");
     $state = NULL;
   }
-  return theme('article_discovery_results', $data, $state);
+  return theme('article_discovery_results', array('data' => $data, 'state' => (isset($state) ? $state : NULL)));
 }
 
 /*
@@ -975,7 +1203,7 @@ function article_discovery_selection() {
   $res->errors = NULL;
   for ($i = ($start -1) * $limit ; $i < ($start * $limit) && $i < $res->recordCount ; ++$i) {
     if (drupal_strlen($ids[$i]) > 2) {
-      $tmp = article_discovery_submit_query($s, 'ID:'. $ids[$i], array(), array(), 1, $limit, NULL, array('s.ho' => 'false'));
+      $tmp = article_discovery_submit_query($s, 'ID:' . $ids[$i], array(), array(), 1, $limit, NULL, array('s.ho' => 'false'));
       if (count($tmp->documents)) {
         $res->documents[] = $tmp->documents[0];
       }
@@ -983,52 +1211,61 @@ function article_discovery_selection() {
   }
   $records = array();
   for ($i=0; $i < count($res->documents); ++$i) {
-    $records[] = theme(
-      'article_discovery_record',
-      $res->documents[$i], //record
-      array('position' => $i, 'page' => $start-1, 'query' => array('selected' => $string)), //position
-      (isset($_SESSION['article_discovery']['selected'])?$_SESSION['article_discovery']['selected']:array()), //selected
-      array('count' => count($res->documents)), //limits
-      theme(
+    $record_args = array(
+      'record'   => $res->documents[$i], //record
+      'data'     => array('position' => $i, 'page' => $start-1, 'query' => array('selected' => (isset($_SESSION['article_discovery']['selected']) ? $_SESSION['article_discovery']['selected'] : NULL))), //position
+      'selected' => (isset($_SESSION['article_discovery']['selected'])?$_SESSION['article_discovery']['selected']:array()), //selected
+      'limits'   => array('count' => count($res->documents)), //limits
+      'link'     => theme(
         'article_discovery_link_box',
-        _article_discovery_link_box_prepare(array(
+        array('data' => _article_discovery_link_box_prepare(array(
           'linkurl_base' => (isset($_SESSION['article_discovery']['linkurl_base'])?$_SESSION['article_discovery']['linkurl_base']:NULL),
           'linkurl_id'   => (isset($_SESSION['article_discovery']['linkurl_id'])?$_SESSION['article_discovery']['linkurl_id']:NULL),
           'openurl'      => sakai_tidy_openurl($res->documents[$i]->openUrl, $res->documents[$i]->ISBN),
           'fulltext'     => $res->documents[$i]->hasFullText,
           'date'         => $res->documents[$i]->PublicationDate_xml[0],
           'id'           => $res->documents[$i]->ID[0],
-          'url'          => $res->documents[$i]->url[0],
-          'URI'          => $res->documents[$i]->URI[0],
-          'link'          => $res->documents[$i]->link,
-          'position'     => $data['position'],
-          'page'         => $data['page'],
-          'query'        => 'ID:'. $res->documents[$i]->ID[0],
-        ))
+          'url'          => (isset($res->documents[$i]->url[0]) ? $res->documents[$i]->url[0] : NULL),
+          'URI'          => (isset($res->documents[$i]->URI[0]) ? $res->documents[$i]->URI[0] : NULL),
+          'link'         => $res->documents[$i]->link,
+          'position'     => -2,
+          'page'         => -2,
+          'query'        => 'ID:' . $res->documents[$i]->ID[0],
+          'link_model'   => (isset($res->documents[$i]->LinkModel[0]) ? $res->documents[$i]->LinkModel[0] : NULL),
+        )))
       )
+    );
+    $records[] = theme(
+      'article_discovery_record',
+      $record_args
     );
   }
   article_discovery_search_pager_init($res->recordCount, $limit, 0);
   $pager = theme('pager');
 
   $data = array(
-  /*
-    'actions'    => theme(
+    /*'actions'    => theme(
       'article_discovery_actions',
-      array('details' => FALSE, 'refworks' => drupal_strlen(variable_get('article_discovery_refworks_vendor', '')) > 0),
-      $ids
-    ),
-	*/
+      array(
+        'state' => array(
+          'details' => FALSE,
+          'refworks' => drupal_strlen(variable_get('article_discovery_refworks_vendor', '')) > 0,
+          'linkurl_id' => isset($_SESSION['article_discovery']['linkurl_id']) ? $_SESSION['article_discovery']['linkurl_id'] : NULL,
+          'linkurl_base' => isset($_SESSION['article_discovery']['linkurl_base']) ? $_SESSION['article_discovery']['linkurl_base'] : NULL,
+        ),
+        'selected' => $ids
+      )
+    ),*/
     'search-box' => '',
     'records'    => $records,
-    'status'     => theme('article_discovery_selection_status', array('search' => $_SESSION['article_discovery']['last_search'])),
+    'status'     => theme('article_discovery_selection_status', array('data' => array('search' => $_SESSION['article_discovery']['last_search']))),
     'facets'     => '',
     'pager'      => $pager,
     'sort'       => '',
     'query'      => NULL,
     'error'      => $res->errors,
   );
-  return theme('article_discovery_results', $data , $state);
+  return theme('article_discovery_results', array('data' => $data , 'state' => (isset($state) ? $state : NULL)));
 }
 
 /*
@@ -1041,7 +1278,7 @@ function article_discovery_selection() {
 function _article_discovery_setup_common() {
   drupal_set_breadcrumb(array());
   article_discovery_session_variables();
-  drupal_add_js(drupal_get_path('module', 'article_discovery') .'/article_discovery.js');
+  drupal_add_js(drupal_get_path('module', 'article_discovery') . '/article_discovery.js');
 }
 
 /**
@@ -1050,7 +1287,7 @@ function _article_discovery_setup_common() {
  * @return
  *   Renderable form array.
  */
-function article_discovery_search_box(&$form_state, $defaults = array()) {
+function article_discovery_search_box($form_state, $defaults = array()) {
   return array(
     '#method' => 'get',
     '#action' => url('articles/search'),
@@ -1070,7 +1307,7 @@ function article_discovery_search_box(&$form_state, $defaults = array()) {
     'heconly' => array(
       '#return_value' => 1,
       '#default_value' => (isset($defaults['heconly'])?'1':''),
-      '#title' => t('Limiter au catalogue de la bibliothèque'),
+      '#title' => t('Limiter au catalogue de la bibliothÃ¨que'),
       '#type' => 'checkbox',
     ),
     'newspapers' => array(
@@ -1091,67 +1328,58 @@ function article_discovery_search_box(&$form_state, $defaults = array()) {
       '#title' => t("Add results beyond this library's holdings"),
       '#type' => 'checkbox',
     ),
-	'linkurl_base' => array(
+      'linkurl_base' => array(
       '#default_value' => (isset($defaults['linkurl_base'])?$defaults['linkurl_base']:NULL),
       '#type' => 'hidden',
-	),
-	'linkurl_id' => array(
+  ),
+  'linkurl_id' => array(
       '#default_value' => (isset($defaults['linkurl_id'])?$defaults['linkurl_id']:NULL),
       '#type' => 'hidden',
-	),
+  ),
     'submit' => array('#type' => 'submit', '#value' => t('Search')),
   );
 }
 
 /**
- * Implements hook_block().
+ * Implements hook_block_info().
  */
-function article_discovery_block($op='list', $delta=0, $edit = array()) {
-  switch ($op) {
-    case 'list':
-      return array(
-        'search-box' => array(
-          'info' => t('Article Discovery Search Box'), //Call it the AD Search box.
-          'cache' => BLOCK_NO_CACHE, //Don't cache this block.
-          //'weight' => 0, //No default weight specified.
-          'status' => 0, //Default disabled.
-          'visibility' => 0, //Show only on listed pages.
-          'pages' => '',
-        ),
-        'facet-box' => array(
-          'info' => t('Article Discovery Facet Box'), //Call it the AD Search box.
-          'cache' => BLOCK_NO_CACHE, //Don't cache this block.
-          //'weight' => 0, //No default weight specified.
-          'status' => 0, //Default disabled.
-          'visibility' => 1, //Show only on listed pages.
-          'pages' => 'articles/search',
-        ),
+function article_discovery_block_info() {
+  $block['article_discovery_search_box'] = array(
+    'info' => t('Article Discovery Search Box'),
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  );
+  $block['article_discovery_facet_block'] = array(
+    'info' => t('Article Discovery Facet Box'),
+    'cache' => DRUPAL_NO_CACHE,
+    'visibility' => 1, //Show only on listed pages.
+    'pages' => 'articles/search',
+  );
+  return $block;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function article_discovery_block_view($delta) {
+  switch ($delta) {
+    case 'article_discovery_search_box':
+      $block = array(
+        'subject' => t('Article Search'),
+        'content' => drupal_get_form('article_discovery_search_box', $_REQUEST),
       );
       break;
-    case 'configure':
-      return array();
-    case 'save':
-    case 'view':
-      $block = array();
-      switch ($delta) {
-        case 'search-box':
-          $block['content'] = drupal_get_form('article_discovery_search_box', array_merge($_GET, $_POST));
-          $block['subject'] = t('Article Search');
-          break;
-        case 'facet-box':
-          $tmp = article_discovery_query(article_discovery_parse_query($_REQUEST));
-          $block['content'] = $tmp['facets'];
-          $block['subject'] = t('Refine Search');
-          break;
-        default:
-          break;
-      }
-      return $block;
-      return $block;
+    case 'article_discovery_facet_block':
+      $tmp = article_discovery_query(article_discovery_parse_query($_REQUEST));
+      $block = array(
+        'subject' => t('Refine Search'),
+        'content' => $tmp['facets'],
+      );
       break;
     default:
+      $block = array();
       break;
   }
+  return $block;
 }
 
 /**
@@ -1169,13 +1397,18 @@ function article_discovery_display() {
   $state = array('advanced' => FALSE);
   $results = article_discovery_query($query);
   $data = array(
-  /*
-    'actions'    => theme(
+    /*'actions'    => theme(
       'article_discovery_actions',
-      array('details' => FALSE, 'refworks' => drupal_strlen(variable_get('article_discovery_refworks_vendor', '')) > 0),
-      $_SESSION['article_discovery']['selected']
-    ),
-	*/
+      array(
+        'state' => array(
+          'details' => FALSE,
+          'refworks' => drupal_strlen(variable_get('article_discovery_refworks_vendor', '')) > 0,
+          'linkurl_id' => isset($_SESSION['article_discovery']['linkurl_id']) ? $_SESSION['article_discovery']['linkurl_id'] : NULL,
+          'linkurl_base' => isset($_SESSION['article_discovery']['linkurl_base']) ? $_SESSION['article_discovery']['linkurl_base'] : NULL,
+        ),
+        'selected' => (isset($_SESSION['article_discovery']['selected']) ? $_SESSION['article_discovery']['selected'] : NULL)
+      )
+    ),*/
     'search-box'  => '', //theme('article_discovery_search_box', $query, $state),
     'records'     => $results['records'],
     'facets'      => $results['facets'],
@@ -1183,11 +1416,11 @@ function article_discovery_display() {
     'debug'       => $results['debug'],
     'sort'        => $results['sort'],
     'status'      => $results['status'],
-//    'recommended' => $results['recommended'],
+  //  'recommended' => $results['recommended'],
     'error'       => $results['error'],
     'query'       => $query,
   );
-  return theme('article_discovery_results', $data, $state);
+  return theme('article_discovery_results', array('data' => $data, 'state' => $state));
 }
 
 /**
@@ -1243,11 +1476,11 @@ function _article_discovery_link_box_prepare($data) {
       }
     }
     if (isset($_SESSION['article_discovery']['ezproxy'])) {
-      $data['link'] = $_SESSION['article_discovery']['ezproxy'] .'?qurl='. rawurlencode($link);
+      $data['link'] = $_SESSION['article_discovery']['ezproxy'] . '?qurl=' . rawurlencode($link);
     }
     else {
       if (variable_get('article_discovery_ezproxy_link', '')) {
-        $data['link'] = variable_get('article_discovery_ezproxy_link', '') .'?qurl='. rawurlencode($link);
+        $data['link'] = variable_get('article_discovery_ezproxy_link', '') . '?qurl=' . rawurlencode($link);
       }
       else {
         $data['link']  = $link;
@@ -1285,19 +1518,19 @@ function _article_discovery_sort_box_prepare($path, $variables) {
   unset($variables['sort']);
   $options[] = array(
     'display'  => t('Relevance'),
-    'value'    => $path .'?'. http_build_query($variables),
+    'value'    => $path . '?' . http_build_query($variables),
     'selected' => ($current == ''? TRUE : FALSE),
   );
   $variables['sort'] = 'PublicationDate:desc';
   $options[] = array(
     'display'  => t('Date (newest first)'),
-    'value'    => $path .'?'. http_build_query($variables),
+    'value'    => $path . '?' . http_build_query($variables),
     'selected' => ($current == $variables['sort']? TRUE : FALSE)
   );
   $variables['sort'] = 'PublicationDate:asc';
   $options[] = array(
     'display'  => t('Date (oldest first)'),
-    'value'    => $path .'?'. http_build_query($variables),
+    'value'    => $path . '?' . http_build_query($variables),
     'selected' => ($current == $variables['sort']? TRUE : FALSE)
   );
   return $options;
@@ -1361,42 +1594,42 @@ function _article_discovery_facets_prepare($facets, $range_facets, $uri, $variab
         //Check and see whether the currently examined possible facet
         // matches the currently examined browser facet.
         //Do this by configuring a "test" string, and comparing it to the
-        $test = 'addFacetValueFilters('. $f .',';
+        $test = 'addFacetValueFilters(' . $f . ',';
         if (strncmp($facet, $test, drupal_strlen($test)) == 0 ) {
           $v = drupal_substr($facet, drupal_strlen($test), -1);
           $tmp = $variables;
           unset($tmp['facet'][$i]);
           $tmp = http_build_query($tmp);
           $facets_applied[] = array(
-            'display' => $d .': '.  $v,
-            'url'     => $uri . (drupal_strlen($tmp)?'?'. $tmp:''),
+            'display' => $d . ': ' . $v,
+            'url'     => $uri . (drupal_strlen($tmp)?'?' . $tmp:''),
             'action' => "removeFacet:$d:$v",
           );
         }
         //Do the same for addRangeFilter
-        $test = 'addRangeFilter('. $f .',';
+        $test = 'addRangeFilter(' . $f . ',';
         if (strncmp($facet, $test, drupal_strlen($test)) == 0 ) {
           $v = drupal_substr($facet, drupal_strlen($test), -1);
           $tmp = $variables;
           unset($tmp['facet'][$i]);
           $tmp = http_build_query($tmp);
           $facets_applied[] = array(
-            'display' => $d .': '.  theme('article_discovery_date_range', $v),
-            'url'     => $uri . (drupal_strlen($tmp)?'?'. $tmp:''),
+            'display' => $d . ': ' . theme('article_discovery_date_range', array('range' => $v)),
+            'url'     => $uri . (drupal_strlen($tmp)?'?' . $tmp:''),
             'action'  => "removeFacet:$d:$v",
           );
         }
         //Do the same for addFacetValueGroupFilter
-        $test = 'addFacetValueGroupFilter('. $f .',';
+        $test = 'addFacetValueGroupFilter(' . $f . ',';
         if (strncmp($facet, $test, drupal_strlen($test)) == 0) {
           list($operator, $v) = explode(',', drupal_substr($facet, drupal_strlen($test), -1), 2);
-          $operator = ' '. drupal_strtoupper($operator) .' ';
+          $operator = ' ' . drupal_strtoupper($operator) . ' ';
           $tmp = $variables;
           unset($tmp['facet'][$i]);
           $tmp = http_build_query($tmp);
           $facets_applied[] = array(
-             'display' => $d .': '. implode($operator, explode(',', $v)),
-             'url'     => $uri . (drupal_strlen($tmp)?'?'. $tmp:''),
+             'display' => $d . ': ' . implode($operator, explode(',', $v)),
+             'url'     => $uri . (drupal_strlen($tmp)?'?' . $tmp:''),
              'action'  => "removeFacet:$d:$v",
           );
         }
@@ -1422,7 +1655,7 @@ function _article_discovery_facets_prepare($facets, $range_facets, $uri, $variab
               $facets_available[$d][] = array(
                 'display' => $count->value,
                 'count'   => $count->count,
-                'url'     => $uri . (drupal_strlen($tmp)?'?'. $tmp:'') ,
+                'url'     => $uri . (drupal_strlen($tmp)?'?' . $tmp:'') ,
                 'action'  => $count->applyCommand,
               );
             }
@@ -1454,10 +1687,10 @@ function _article_discovery_facets_prepare($facets, $range_facets, $uri, $variab
               $facets_available[$d] = array();
             }
             $facets_available[$d][] = array(
-              'display' => theme('article_discovery_date_range', $count->range->minValue .':'. $count->range->maxValue),
+              'display' => theme('article_discovery_date_range', array('range' => $count->range->minValue . ':' . $count->range->maxValue)),
               'count'   => $count->count,
-              'url'     => $uri . (drupal_strlen($tmp)?'?'. $tmp:''),
-              'action'  => 'add|'. $count->applyCommand,
+              'url'     => $uri . (drupal_strlen($tmp)?'?' . $tmp:''),
+              'action'  => 'add|' . $count->applyCommand,
             );
           }
         }
@@ -1471,7 +1704,7 @@ function _article_discovery_facets_prepare($facets, $range_facets, $uri, $variab
   $refine = array( 'scholarly' => array(), 'fulltext' => array(), 'newspapers' => array(), 'local' => array(), 'heconly' => array());
   foreach ($refine as $k => &$v) {
     $tmp = $variables;
-    if ($tmp[$k]) {
+    if (isset($tmp[$k]) && $tmp[$k]) {
       unset($tmp[$k]);
       $v['checked'] = 'checked=checked';
     }
@@ -1480,7 +1713,7 @@ function _article_discovery_facets_prepare($facets, $range_facets, $uri, $variab
       $v['checked'] = '';
     }
     if (count($tmp)) {
-      $v['url'] = $uri .'?'. http_build_query($tmp);
+      $v['url'] = $uri . '?' . http_build_query($tmp);
     }
     else {
       $v['url'] = $uri;
@@ -1506,8 +1739,9 @@ function article_discovery_query($query) {
       unset($_GET[$field]);
     }
   }
-  if (count($results))
+  if (count($results)) {
     return $results;
+  }
   $search_profile = array(
     'query' => $query,
     'uri' => preg_replace('/\?.*/', '', request_uri())
@@ -1562,33 +1796,42 @@ function article_discovery_query($query) {
     request_uri(),
     array_merge($_GET, $_POST)
   );
-  $facets = theme('article_discovery_facets', $facet_data['facets-applied'], $facet_data['facets-available'], $facet_data['refine-parameters'] );
-  $status = theme('article_discovery_status_bar', array('start' => $parameters['start'], 'limit' => $parameters['limit'], 'count' =>  $res->recordCount, 'criteria' => (is_array($parameters['query'])?implode(' ', $parameters['query']):'')));
+  $facets = theme(
+    'article_discovery_facets', 
+    array(
+      'facets_applied'   => $facet_data['facets-applied'],
+      'facets_available' => $facet_data['facets-available'],
+      'refine'           => $facet_data['refine-parameters'],
+    )
+  );
+  $status = theme('article_discovery_status_bar', array('data' => array('start' => $parameters['start'], 'limit' => $parameters['limit'], 'count' =>  $res->recordCount, 'criteria' => (is_array($parameters['query'])?implode(' ', $parameters['query']):''))));
   $records = array();
   for ($i=0; $i < count($res->documents); ++$i) {
-    $records[] = theme(
-      'article_discovery_record',
-      $res->documents[$i], //record
-      array('position' => $i, 'page' => $parameters['start']-1, 'query' => $search_profile['query']), //position,
-      (isset($_SESSION['article_discovery']['selected'])?$_SESSION['article_discovery']['selected']:array()), //selected
-      array('count' => count($res->documents)), //limits
-      theme(
+    $record_args = array(
+      'record'   =>       $res->documents[$i], //record
+      'data'     => array('position' => $i, 'page' => $parameters['start']-1, 'query' => $search_profile['query']), //position,
+      'selected' => (isset($_SESSION['article_discovery']['selected'])?$_SESSION['article_discovery']['selected']:array()), //selected
+      'limits'   => array('count' => count($res->documents)), //limits
+      'link'     => theme(
         'article_discovery_link_box',
-        _article_discovery_link_box_prepare(array(
+        array('data' => _article_discovery_link_box_prepare(array(
           'linkurl_base' => (isset($_SESSION['article_discovery']['linkurl_base'])?$_SESSION['article_discovery']['linkurl_base']:NULL),
           'linkurl_id'   => (isset($_SESSION['article_discovery']['linkurl_id'])?$_SESSION['article_discovery']['linkurl_id']:NULL),
-          'openurl'      => sakai_tidy_openurl($res->documents[$i]->openUrl, $res->documents[$i]->ISBN),
+          'openurl'      => $res->documents[$i]->openUrl,
           'fulltext'     => $res->documents[$i]->hasFullText,
           'date'         => $res->documents[$i]->PublicationDate_xml[0],
           'id'           => $res->documents[$i]->ID[0],
-          'url'          => $res->documents[$i]->url[0],
-          'URI'          => $res->documents[$i]->URI[0],
+          'url'          => (isset($res->documents[$i]->url[0]) ? $res->documents[$i]->url[0] : NULL),
+          'URI'          => (isset($res->documents[$i]->URI[0]) ? $res->documents[$i]->URI[0] : NULL),
           'link'         => $res->documents[$i]->link,
-          'position'     => $data['position'],
-          'query'        => $data['page'],
-        ))
+          'position'     => $i,
+          'page'         => (isset($_GET['page']) ? $_GET['page'] : 0),
+          'query'        => (isset($search_profile['query']) ? $search_profile['query']:  NULL),
+          'link_model'   => (isset($res->documents[$i]->LinkModel[0]) ? $res->documents[$i]->LinkModel[0] : NULL),
+        )))
       )
     );
+    $records[] = theme('article_discovery_record', $record_args);
   }
   /*
   if (isset($res->recommendationLists) &&
@@ -1604,12 +1847,11 @@ function article_discovery_query($query) {
   else {
     $recommended = '';
   }
-  */
-
+*/
   article_discovery_search_pager_init($res->recordCount, $limit, 0);
   $pager = theme('pager');
   $sort_options = _article_discovery_sort_box_prepare(request_uri(), array_merge($_GET, $_POST));
-  $sort  = theme('article_discovery_sort_box', $sort_options);
+  $sort  = theme('article_discovery_sort_box', array('options' => $sort_options));
 
   //In the future we might take into consideration:
   //$res->didYouMeanSuggestsions;
@@ -1618,11 +1860,11 @@ function article_discovery_query($query) {
     'records' => $records,
     'facets' => $facets,
     'debug' => '', //$res,
-//    'recommended' => $recommended,
+ //   'recommended' => $recommended,
     'pager' => $pager,
     'status' => $status,
     'sort' => $sort,
-    'error' => $res->errors
+    'error' => (isset($res->errors) ? $res->errors : NULL)
   );
   return $results;
 }
@@ -1668,7 +1910,7 @@ function article_discovery_tail_load($arg, $map, $index) {
  * Implements hook_cron().
  */
 function article_discovery_cron() {
-  db_query("DELETE FROM {article_discovery_export} WHERE created < %d", time() - 600);
+  db_delete('article_discovery_export')->condition('created', REQUEST_TIME - 600, '<')->execute();
 }
 
 function article_discovery_collect_parameters($query) {
@@ -1696,7 +1938,7 @@ function article_discovery_collect_parameters($query) {
     'subject'  => 'SubjectTerms',
   );
   foreach ($tr as $k => $v) {
-    if (drupal_strlen($query[$k])) {
+    if (isset($query[$k]) && drupal_strlen($query[$k])) {
       $q[] = sprintf('%s:(%s)', $v, $query[$k]);
     }
   }
@@ -1744,7 +1986,7 @@ function article_discovery_collect_parameters($query) {
     $date_drilldown[sprintf('%d:%d', $decade, $decade+9)] = $str;
   }
 
-  if (is_array($query['facet']) && count($query['facet'])) {
+  if (isset($query['facet']) && is_array($query['facet']) && count($query['facet'])) {
     foreach ($query['facet'] as $facet) {
       if (strncmp($facet, 'addFacetValueFilters', 20) == 0) {
         $options['s.fvf'][] = drupal_substr($facet, 21, -1);
@@ -1790,7 +2032,7 @@ function article_discovery_collect_parameters($query) {
   if (isset($query['newspapers']) && $query['newspapers']) {
     $options['s.fvf'][] = 'ContentType,Newspaper\ Article,true';
   }
-  if(isset($query['heconly']) && $query['heconly']) {
+   if(isset($query['heconly']) && $query['heconly']) {
     $options['s.fvf'][] = 'SourceType,Library\ Catalog';
   }
   if (isset($query['ISBN']) && $query['ISBN']) {
@@ -1825,7 +2067,7 @@ function article_discovery_submit_query($searcher, $query = NULL , $facets = NUL
     'options' => $options,
   );
   foreach (module_implements('article_discovery_parameters_alter') as $module) {
-    $function = $module .'_article_discovery_parameters_alter';
+    $function = $module . '_article_discovery_parameters_alter';
     $parameters = call_user_func($function, $parameters);
   }
   $res = $searcher->query(
@@ -1838,7 +2080,7 @@ function article_discovery_submit_query($searcher, $query = NULL , $facets = NUL
     $parameters['options']
   );
   foreach (module_implements('article_discovery_results_alter') as $module) {
-    $function = $module .'_article_discovery_results_alter';
+    $function = $module . '_article_discovery_results_alter';
     $res = call_user_func($function, $res);
   }
   return $res;
