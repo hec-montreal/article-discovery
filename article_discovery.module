@@ -8,6 +8,11 @@
  * override themes with your local site branding.
  */
 
+drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION); // This makes all Drupal functionality available to my script
+drupal_session_start();
+    if (!empty($user->uid) || !empty($_SESSION)) {
+      drupal_page_is_cacheable(FALSE);
+    }
 /**
  * I've once seen a module document this as hook_settings, but I don't see
  * that defined on api.drupal.org.  Either way, this is the function
@@ -456,13 +461,11 @@ function article_discovery_session_variables() {
         unset($GLOBALS[$v]['article_discovery']['ezproxy']);
       }
     }
+
     if (variable_get('article_discovery_allow_custom_link_resolver', 0)) {
       if (isset($GLOBALS[$v]['linkurl_base'])) {
         if (drupal_strlen($GLOBALS[$v]['linkurl_base']) > 1) {
           $_SESSION['article_discovery']['linkurl_base'] = $GLOBALS[$v]['linkurl_base'];
-        }
-        else {
-          unset($_SESSION['article_discovery']['linkurl_base']);
         }
         unset($GLOBALS[$v]['linkurl_base']);
       }
@@ -470,13 +473,13 @@ function article_discovery_session_variables() {
         if (drupal_strlen($GLOBALS[$v]['linkurl_id']) > 0) {
           $_SESSION['article_discovery']['linkurl_id'] = $GLOBALS[$v]['linkurl_id'];
         }
-        else {
-          unset($_SESSION['article_discovery']['linkurl_id']);
-        }
-        unset($GLOBALS[$v]['linkurl_id']);
+         unset($GLOBALS[$v]['linkurl_id']);
       }
     }
   }
+
+  // echo("<script>console.log('PHP: ".print_r($_SESSION['article_discovery'])."');</script>");
+
 }
 
 /**
@@ -1277,6 +1280,7 @@ function article_discovery_selection() {
  */
 function _article_discovery_setup_common() {
   drupal_set_breadcrumb(array());
+
   article_discovery_session_variables();
   drupal_add_js(drupal_get_path('module', 'article_discovery') . '/article_discovery.js');
 }
@@ -1307,7 +1311,7 @@ function article_discovery_search_box($form_state, $defaults = array()) {
     'heconly' => array(
       '#return_value' => 1,
       '#default_value' => (isset($defaults['heconly'])?'1':''),
-      '#title' => t('Limiter au catalogue de la bibliothÃ¨que'),
+      '#title' => t('Limiter au catalogue de la bibliothèque'),
       '#type' => 'checkbox',
     ),
     'newspapers' => array(
@@ -1329,11 +1333,11 @@ function article_discovery_search_box($form_state, $defaults = array()) {
       '#type' => 'checkbox',
     ),
       'linkurl_base' => array(
-      '#default_value' => (isset($defaults['linkurl_base'])?$defaults['linkurl_base']:NULL),
+      '#default_value' => (isset($defaults['build_info']['args'][0]['linkurl_base'])?$defaults['build_info']['args'][0]['linkurl_base']:NULL),
       '#type' => 'hidden',
   ),
   'linkurl_id' => array(
-      '#default_value' => (isset($defaults['linkurl_id'])?$defaults['linkurl_id']:NULL),
+      '#default_value' => (isset($defaults['build_info']['args'][0]['linkurl_id'])?$defaults['build_info']['args'][0]['linkurl_id']:NULL),
       '#type' => 'hidden',
   ),
     'submit' => array('#type' => 'submit', '#value' => t('Search')),
@@ -2083,6 +2087,7 @@ function article_discovery_submit_query($searcher, $query = NULL , $facets = NUL
     $function = $module . '_article_discovery_results_alter';
     $res = call_user_func($function, $res);
   }
+
   return $res;
 }
 

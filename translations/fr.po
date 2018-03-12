@@ -341,8 +341,9 @@ msgid "Article Discovery Facet Box"
 msgstr "Boite des facettes"
 
 #: article_discovery.module:1125
+#: article_discovery.module:1378
 msgid "Refine Search"
-msgstr "Affiner la Recherche"
+msgstr "Options de recherche"
 
 #: article_discovery.module:526
 msgid "You have selected 1 record for export."

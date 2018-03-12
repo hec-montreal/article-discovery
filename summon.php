@@ -96,7 +96,6 @@ if (module_load_include('php', 'article_discovery', 'Summon.class'))  {
       if ($this->sessionId) {
         $this->client->addHeader('x-summon-session-id', $this->sessionId);
       }
-
       // Send Request
       $result = @$this->client->sendRequest($service);
       if (!@PEAR::isError($result)) {

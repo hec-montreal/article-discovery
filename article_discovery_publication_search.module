@@ -115,6 +115,7 @@ function article_discovery_publication_search_display() {
   $query = article_discovery_parse_query($_REQUEST);
   $parameters = article_discovery_collect_parameters($query);
 
+
   $publications = array();
   $page = 1;
   if (isset($_GET['page'])) {
